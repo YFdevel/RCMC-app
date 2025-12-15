@@ -2121,3 +2121,232 @@ left: calc(15px + env(safe-area-inset-left));
 }
 }
 }
+
+/* === ИСПРАВЛЕНИЯ МОДАЛЬНОГО ОКНА === */
+
+/* Основные стили для модального окна */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.show {
+    display: flex;
+    animation: modalFadeIn 0.3s ease;
+}
+
+.modal-content {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Десктопный заголовок */
+.modal-header.desktop-only {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 25px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    min-height: 60px;
+    z-index: 10002;
+}
+
+/* Скрываем десктопный заголовок на мобильных */
+@media (max-width: 768px) {
+    .modal-header.desktop-only {
+        display: none !important;
+    }
+
+    .close-modal.desktop-only {
+        display: none !important;
+    }
+}
+
+/* Показываем десктопный заголовок только на больших экранах */
+@media (min-width: 769px) {
+    .modal-header.desktop-only {
+        display: flex !important;
+    }
+
+    .close-modal.desktop-only {
+        display: flex !important;
+    }
+
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Мобильные кнопки управления */
+@media (max-width: 768px) {
+    .close-modal.mobile-only,
+    .fullscreen-btn.mobile-only {
+        display: flex !important;
+        position: fixed;
+        z-index: 10005;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.65);
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        color: white;
+        font-size: 1.2rem;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        transition: all 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .close-modal.mobile-only {
+        top: 15px;
+        right: 15px;
+    }
+
+    .fullscreen-btn.mobile-only {
+        top: 15px;
+        left: 15px;
+    }
+
+    .close-modal.mobile-only:active,
+    .fullscreen-btn.mobile-only:active {
+        transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .close-modal.mobile-only:hover,
+    .fullscreen-btn.mobile-only:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+}
+
+/* Тело модального окна */
+.modal-body {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+    padding: 20px;
+    background: #000;
+    width: 100%;
+    height: 100%;
+}
+
+/* Изображения в модальном окне */
+.modal-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
+    display: block;
+    margin: auto;
+}
+
+/* PDF просмотрщик */
+.pdf-presentation-viewer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+}
+
+/* Анимация появления */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Поддержка безопасных зон */
+@supports (padding-top: env(safe-area-inset-top)) {
+    @media (max-width: 768px) {
+        .close-modal.mobile-only {
+            top: calc(15px + env(safe-area-inset-top));
+            right: calc(15px + env(safe-area-inset-right));
+        }
+
+        .fullscreen-btn.mobile-only {
+            top: calc(15px + env(safe-area-inset-top));
+            left: calc(15px + env(safe-area-inset-left));
+        }
+
+        .modal-body {
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+    }
+}
+
+/* Очень маленькие экраны */
+@media (max-width: 375px) {
+    .close-modal.mobile-only,
+    .fullscreen-btn.mobile-only {
+        width: 38px;
+        height: 38px;
+        font-size: 1.1rem;
+    }
+}
+
+/* Горизонтальная ориентация на мобильных */
+@media (max-width: 768px) and (orientation: landscape) {
+    .close-modal.mobile-only,
+    .fullscreen-btn.mobile-only {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+        top: 10px;
+    }
+
+    .close-modal.mobile-only {
+        right: 10px;
+    }
+
+    .fullscreen-btn.mobile-only {
+        left: 10px;
+    }
+}
+
+/* Полноэкранный режим */
+.modal-content:fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+}
+
+.modal-content:fullscreen .modal-body {
+    padding: 0;
+}
+
+/* Фикс для старых браузеров */
+@supports not (backdrop-filter: blur(10px)) {
+    .close-modal.mobile-only,
+    .fullscreen-btn.mobile-only {
+        background: rgba(0, 0, 0, 0.85) !important;
+    }
+
+    .modal-header.desktop-only {
+        background: rgba(0, 0, 0, 0.95);
+    }
+}
