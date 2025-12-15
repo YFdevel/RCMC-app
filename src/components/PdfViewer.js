@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-pdfjs.GlobalWorkerOptions.workerSrc = process.env.PUBLIC_URL + '/pdf.worker.min.mjs';
-
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 const PdfViewer = ({ fileUrl, fileName }) => {
     const [numPages, setNumPages] = useState(null);
@@ -47,7 +49,9 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             }
         };
 
-        checkFileExists();
+        if (fileUrl) {
+            checkFileExists();
+        }
     }, [fileUrl]);
 
     // Обработка успешной загрузки PDF
@@ -60,21 +64,14 @@ const PdfViewer = ({ fileUrl, fileName }) => {
 
     // Обработка ошибки загрузки PDF
     const onDocumentLoadError = (error) => {
-        console.error('PDF load error details:', error);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-
+        console.error('PDF load error:', error);
+        
         let errorMessage = 'Не удалось загрузить PDF файл';
-
-        // Более конкретные сообщения об ошибках
-        if (error.name === 'InvalidPDFException') {
-            errorMessage = 'PDF файл поврежден или имеет неверный формат';
-        } else if (error.name === 'MissingPDFException') {
-            errorMessage = 'PDF файл не найден по указанному пути';
-        } else if (error.message && error.message.includes('CORS')) {
-            errorMessage = 'Ошибка доступа к файлу (проблема CORS)';
+        
+        if (error.message && error.message.includes('version')) {
+            errorMessage = 'Версия PDF обработчика несовместима. Обновите страницу.';
         }
-
+        
         setError(errorMessage);
         setIsLoading(false);
     };
@@ -82,12 +79,9 @@ const PdfViewer = ({ fileUrl, fileName }) => {
     // Получаем правильный URL для PDF с учетом PUBLIC_URL
     const getPdfUrl = () => {
         if (!fileUrl) return '';
-
-        // Если путь начинается с /, добавляем PUBLIC_URL
         if (fileUrl.startsWith('/')) {
             return `${process.env.PUBLIC_URL}${fileUrl}`;
         }
-
         return fileUrl;
     };
 
@@ -124,25 +118,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                 <div className="pdf-error">
                     <i className="fas fa-exclamation-triangle"></i>
                     <h3>Файл не найден</h3>
-                    <p>PDF файл по пути <code>{fileUrl}</code> не существует или недоступен.</p>
-
-                    <div className="pdf-error-actions">
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="pdf-retry-btn"
-                        >
-                            <i className="fas fa-sync-alt"></i> Обновить страницу
-                        </button>
-
-                        <p className="pdf-error-tip">
-                            Проверьте:
-                            <ul>
-                                <li>Файл должен находиться в папке <code>public/assets/...</code></li>
-                                <li>Путь в файле <code>categories.js</code> должен начинаться с <code>/</code></li>
-                                <li>Имя файла должно совпадать (регистр важен!)</li>
-                            </ul>
-                        </p>
-                    </div>
+                    <p>PDF файл по пути <code>{fileUrl}</code> не существует.</p>
                 </div>
             </div>
         );
@@ -210,30 +186,13 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         <i className="fas fa-exclamation-triangle"></i>
                         <h3>Ошибка загрузки</h3>
                         <p>{error}</p>
-
-                        <div className="pdf-error-actions">
-                            <button
-                                onClick={openInNewTab}
-                                className="pdf-open-tab-btn"
-                            >
-                                <i className="fas fa-external-link-alt"></i>
-                                Открыть в новой вкладке
-                            </button>
-
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="pdf-retry-btn"
-                            >
-                                <i className="fas fa-sync-alt"></i>
-                                Попробовать снова
-                            </button>
-                        </div>
-
-                        <div className="pdf-debug-info">
-                            <p><strong>Отладочная информация:</strong></p>
-                            <p>URL: <code>{getPdfUrl()}</code></p>
-                            <p>Имя файла: <code>{fileName}</code></p>
-                        </div>
+                        <button
+                            onClick={openInNewTab}
+                            className="pdf-open-tab-btn"
+                        >
+                            <i className="fas fa-external-link-alt"></i>
+                            Открыть в новой вкладке
+                        </button>
                     </div>
                 )}
 
@@ -249,22 +208,10 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                                     <p>Загрузка PDF...</p>
                                 </div>
                             }
-                            error={
-                                <div className="pdf-error">
-                                    <i className="fas fa-exclamation-triangle"></i>
-                                    <p>Ошибка загрузки PDF</p>
-                                </div>
-                            }
-                            options={{
-                                cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
-                                cMapPacked: true,
-                            }}
                         >
                             <Page
                                 pageNumber={pageNumber}
                                 scale={scale}
-                                renderTextLayer={true}
-                                renderAnnotationLayer={true}
                                 className="pdf-page"
                             />
                         </Document>
