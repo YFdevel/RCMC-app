@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
@@ -13,27 +13,51 @@ const PdfViewer = ({ fileUrl, fileName }) => {
     const [containerWidth, setContainerWidth] = useState(0);
     const [containerHeight, setContainerHeight] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
+    const [showPageIndicator, setShowPageIndicator] = useState(false);
+    const [touchStartX, setTouchStartX] = useState(null);
+    const [touchEndX, setTouchEndX] = useState(null);
     const containerRef = useRef(null);
     const viewportRef = useRef(null);
+    const pageIndicatorTimeoutRef = useRef(null);
 
-    // Проверяем существование файла перед загрузкой
+    // Проверяем мобильное устройство
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth <= 768;
+            setIsMobile(mobile);
+
+            if (mobile) {
+                const isLandscape = window.innerWidth > window.innerHeight;
+                setScale(isLandscape ? 1.0 : 0.9);
+            } else {
+                setScale(1.0);
+            }
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        window.addEventListener('orientationchange', checkMobile);
+
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+            window.removeEventListener('orientationchange', checkMobile);
+        };
+    }, []);
+
+    // Проверяем существование файла
     useEffect(() => {
         const checkFileExists = async () => {
+            if (!fileUrl) return;
+
             setIsLoading(true);
             setError(null);
-            setFileExists(false);
 
             try {
-                console.log('Checking file:', fileUrl);
-
-                // Для относительных путей добавляем PUBLIC_URL
-                let checkUrl = fileUrl;
-                if (fileUrl.startsWith('/')) {
-                    checkUrl = `${process.env.PUBLIC_URL}${fileUrl}`;
-                }
+                const checkUrl = fileUrl.startsWith('/')
+                    ? `${process.env.PUBLIC_URL}${fileUrl}`
+                    : fileUrl;
 
                 const response = await fetch(checkUrl, { method: 'HEAD' });
-                console.log('File check response:', response.status, response.ok);
 
                 if (response.ok) {
                     setFileExists(true);
@@ -41,63 +65,36 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                 } else {
                     setError(`Файл не найден (ошибка ${response.status})`);
                     setFileExists(false);
+                    setIsLoading(false);
                 }
             } catch (error) {
                 console.error('File check failed:', error);
                 setError('Не удалось проверить наличие файла');
                 setFileExists(false);
-            } finally {
                 setIsLoading(false);
             }
         };
 
-        if (fileUrl) {
-            checkFileExists();
-        }
+        checkFileExists();
     }, [fileUrl]);
-
-    // Проверяем мобильное устройство
-    useEffect(() => {
-        const checkMobile = () => {
-            const mobile = window.innerWidth <= 768;
-            setIsMobile(mobile);
-            
-            // Автоматически подбираем масштаб для мобильных устройств
-            if (mobile) {
-                const isLandscape = window.innerWidth > window.innerHeight;
-                setScale(isLandscape ? 0.85 : 0.75);
-            } else {
-                setScale(1.0);
-            }
-        };
-        
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        window.addEventListener('orientationchange', checkMobile);
-        
-        return () => {
-            window.removeEventListener('resize', checkMobile);
-            window.removeEventListener('orientationchange', checkMobile);
-        };
-    }, []);
 
     // Рассчитываем размеры контейнера
     useEffect(() => {
         const updateContainerSize = () => {
-            if (containerRef.current && viewportRef.current) {
-                const viewportRect = viewportRef.current.getBoundingClientRect();
-                setContainerWidth(viewportRect.width);
-                setContainerHeight(viewportRect.height);
+            if (viewportRef.current) {
+                const rect = viewportRef.current.getBoundingClientRect();
+                setContainerWidth(rect.width);
+                setContainerHeight(rect.height);
             }
         };
 
         updateContainerSize();
-        
+
         const resizeObserver = new ResizeObserver(updateContainerSize);
         if (viewportRef.current) {
             resizeObserver.observe(viewportRef.current);
         }
-        
+
         window.addEventListener('resize', updateContainerSize);
         window.addEventListener('orientationchange', updateContainerSize);
 
@@ -113,226 +110,186 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         setNumPages(numPages);
         setIsLoading(false);
         setError(null);
-        console.log('PDF loaded successfully:', numPages, 'pages');
     };
 
     // Обработка ошибки загрузки PDF
     const onDocumentLoadError = (error) => {
         console.error('PDF load error:', error);
-        
-        let errorMessage = 'Не удалось загрузить PDF файл';
-        
-        if (error.message && error.message.includes('version')) {
-            errorMessage = 'Версия PDF обработчика несовместима. Обновите страницу.';
-        }
-        
-        setError(errorMessage);
+        setError('Не удалось загрузить PDF файл');
         setIsLoading(false);
     };
 
-    // Получаем правильный URL для PDF с учетом PUBLIC_URL
-    const getPdfUrl = () => {
+    // Получаем правильный URL для PDF
+    const getPdfUrl = useCallback(() => {
         if (!fileUrl) return '';
-        if (fileUrl.startsWith('/')) {
-            return `${process.env.PUBLIC_URL}${fileUrl}`;
+        return fileUrl.startsWith('/')
+            ? `${process.env.PUBLIC_URL}${fileUrl}`
+            : fileUrl;
+    }, [fileUrl]);
+
+    // Навигация по страницам
+    const goToPrevPage = useCallback(() => {
+        setPageNumber(prev => {
+            const newPage = Math.max(prev - 1, 1);
+            showPageIndicatorTemporarily();
+            return newPage;
+        });
+    }, []);
+
+    const goToNextPage = useCallback(() => {
+        setPageNumber(prev => {
+            const newPage = Math.min(prev + 1, numPages || 1);
+            showPageIndicatorTemporarily();
+            return newPage;
+        });
+    }, [numPages]);
+
+    // Показываем индикатор страницы временно
+    const showPageIndicatorTemporarily = () => {
+        if (!isMobile) return;
+
+        setShowPageIndicator(true);
+
+        if (pageIndicatorTimeoutRef.current) {
+            clearTimeout(pageIndicatorTimeoutRef.current);
         }
-        return fileUrl;
+
+        pageIndicatorTimeoutRef.current = setTimeout(() => {
+            setShowPageIndicator(false);
+        }, 1500);
     };
 
-    // Открыть PDF в новой вкладке
-    const openInNewTab = () => {
-        const url = getPdfUrl();
-        window.open(url, '_blank', 'noopener,noreferrer');
+    // Обработка свайпа для мобильных
+    const handleTouchStart = (e) => {
+        if (!isMobile) return;
+        setTouchStartX(e.touches[0].clientX);
+        setTouchEndX(null);
     };
 
-    // Загрузить PDF
-    const downloadPdf = () => {
-        const url = getPdfUrl();
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName || 'document.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    const handleTouchMove = (e) => {
+        if (!isMobile || !touchStartX) return;
+        setTouchEndX(e.touches[0].clientX);
     };
 
-    // Навигация
-    const goToPrevPage = () => {
-        setPageNumber(prev => Math.max(prev - 1, 1));
-    };
+    const handleTouchEnd = () => {
+        if (!isMobile || !touchStartX || !touchEndX) return;
 
-    const goToNextPage = () => {
-        setPageNumber(prev => Math.min(prev + 1, numPages || 1));
-    };
+        const swipeDistance = touchStartX - touchEndX;
+        const minSwipeDistance = 50; // минимальное расстояние для свайпа
 
-    // Переход к конкретной странице
-    const goToPage = (e) => {
-        const page = parseInt(e.target.value);
-        if (!isNaN(page) && page >= 1 && page <= (numPages || 1)) {
-            setPageNumber(page);
+        if (Math.abs(swipeDistance) > minSwipeDistance) {
+            if (swipeDistance > 0) {
+                // Свайп влево - следующая страница
+                goToNextPage();
+            } else {
+                // Свайп вправо - предыдущая страница
+                goToPrevPage();
+            }
         }
+
+        setTouchStartX(null);
+        setTouchEndX(null);
     };
 
-    // Изменение масштаба
-    const zoomIn = () => {
-        setScale(prev => Math.min(prev + 0.1, 2.0));
-    };
-
-    const zoomOut = () => {
-        setScale(prev => Math.max(prev - 0.1, 0.5));
-    };
-
-    const resetZoom = () => {
-        if (isMobile) {
-            const isLandscape = window.innerWidth > window.innerHeight;
-            setScale(isLandscape ? 0.85 : 0.75);
-        } else {
-            setScale(1.0);
-        }
-    };
-
-    // Обработка клавиатурных сокращений
+    // Обработка клавиатурных сокращений (только для десктопа)
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // Стрелки для навигации
-            if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.metaKey) {
+            // Только для десктопа
+            if (isMobile) return;
+
+            if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 goToPrevPage();
-            } else if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
+            } else if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 goToNextPage();
-            }
-            // Ctrl/Cmd + для масштабирования
-            else if ((e.ctrlKey || e.metaKey) && e.key === '=') {
-                e.preventDefault();
-                zoomIn();
-            }
-            // Ctrl/Cmd - для уменьшения
-            else if ((e.ctrlKey || e.metaKey) && e.key === '-') {
-                e.preventDefault();
-                zoomOut();
-            }
-            // Ctrl/Cmd 0 для сброса масштаба
-            else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
-                e.preventDefault();
-                resetZoom();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [pageNumber, numPages, scale, isMobile]);
+    }, [isMobile, goToPrevPage, goToNextPage]);
 
-    // Если файл не существует, показываем сообщение об ошибке
+    // Очистка таймеров
+    useEffect(() => {
+        return () => {
+            if (pageIndicatorTimeoutRef.current) {
+                clearTimeout(pageIndicatorTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    // Если файл не существует
     if (!fileExists && !isLoading) {
         return (
-            <div className="pdf-error-container">
-                <div className="pdf-error">
-                    <i className="fas fa-exclamation-triangle"></i>
-                    <h3>Файл не найден</h3>
-                    <p>PDF файл по пути <code>{fileUrl}</code> не существует.</p>
-                </div>
+            <div className="pdf-error">
+                <i className="fas fa-exclamation-triangle"></i>
+                <h3>Файл не найден</h3>
+                <p>PDF файл не существует по указанному пути.</p>
             </div>
         );
     }
 
     return (
-        <div className="pdf-presentation-viewer" ref={containerRef}>
-            {/* Панель управления */}
-            <div className="pdf-controls">
-                <div className="pdf-nav-controls">
-                    <button
-                        onClick={goToPrevPage}
-                        disabled={pageNumber <= 1 || isLoading || error}
-                        className="pdf-control-btn"
-                        title="Предыдущая страница (←)"
-                    >
-                        <i className="fas fa-chevron-left"></i>
-                    </button>
-
-                    <div className="page-info">
-                        <input
-                            type="number"
-                            value={pageNumber}
-                            onChange={goToPage}
-                            min="1"
-                            max={numPages || 1}
-                            className="page-input"
-                            disabled={isLoading || error}
-                        />
-                        <span className="page-total"> / {numPages || '?'}</span>
-                    </div>
-
-                    <button
-                        onClick={goToNextPage}
-                        disabled={pageNumber >= (numPages || 1) || isLoading || error}
-                        className="pdf-control-btn"
-                        title="Следующая страница (→)"
-                    >
-                        <i className="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-
-                {!isMobile && (
-                    <div className="pdf-zoom-controls">
+        <div
+            className="pdf-presentation-viewer"
+            ref={containerRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
+            {/* Панель управления (только для десктопа) */}
+            {!isMobile && (
+                <div className="pdf-controls">
+                    <div className="pdf-nav-controls">
                         <button
-                            onClick={zoomOut}
-                            disabled={isLoading || error}
+                            onClick={goToPrevPage}
+                            disabled={pageNumber <= 1 || isLoading || error}
                             className="pdf-control-btn"
-                            title="Уменьшить (Ctrl -)"
+                            title="Предыдущая страница (←)"
                         >
-                            <i className="fas fa-search-minus"></i>
+                            <i className="fas fa-chevron-left"></i>
                         </button>
-                        
+
+                        <div className="page-info">
+                            <input
+                                type="number"
+                                value={pageNumber}
+                                onChange={(e) => {
+                                    const page = parseInt(e.target.value);
+                                    if (!isNaN(page) && page >= 1 && page <= (numPages || 1)) {
+                                        setPageNumber(page);
+                                    }
+                                }}
+                                min="1"
+                                max={numPages || 1}
+                                className="page-input"
+                                disabled={isLoading || error}
+                            />
+                            <span className="page-total"> / {numPages || '?'}</span>
+                        </div>
+
                         <button
-                            onClick={resetZoom}
-                            disabled={isLoading || error}
+                            onClick={goToNextPage}
+                            disabled={pageNumber >= (numPages || 1) || isLoading || error}
                             className="pdf-control-btn"
-                            title="Сбросить масштаб (Ctrl 0)"
+                            title="Следующая страница (→)"
                         >
-                            <span className="zoom-level">{Math.round(scale * 100)}%</span>
-                        </button>
-                        
-                        <button
-                            onClick={zoomIn}
-                            disabled={isLoading || error}
-                            className="pdf-control-btn"
-                            title="Увеличить (Ctrl +)"
-                        >
-                            <i className="fas fa-search-plus"></i>
+                            <i className="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                )}
 
-                <div className="pdf-action-controls">
-                    {isMobile && (
+                    <div className="pdf-action-controls">
                         <button
-                            onClick={resetZoom}
-                            disabled={isLoading || error}
+                            onClick={() => window.open(getPdfUrl(), '_blank')}
                             className="pdf-control-btn"
-                            title="Масштаб"
+                            title="Открыть в новой вкладке"
                         >
-                            <span className="zoom-level">{Math.round(scale * 100)}%</span>
+                            <i className="fas fa-external-link-alt"></i>
                         </button>
-                    )}
-                    
-                    <button
-                        onClick={openInNewTab}
-                        className="pdf-control-btn"
-                        title="Открыть в новой вкладке"
-                    >
-                        <i className="fas fa-external-link-alt"></i>
-                    </button>
-
-                    <button
-                        onClick={downloadPdf}
-                        className="pdf-control-btn"
-                        title="Скачать PDF"
-                    >
-                        <i className="fas fa-download"></i>
-                    </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Область просмотра PDF */}
             <div className="pdf-viewport" ref={viewportRef}>
@@ -349,7 +306,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         <h3>Ошибка загрузки</h3>
                         <p>{error}</p>
                         <button
-                            onClick={openInNewTab}
+                            onClick={() => window.open(getPdfUrl(), '_blank')}
                             className="pdf-error-link"
                         >
                             <i className="fas fa-external-link-alt"></i>
@@ -370,38 +327,45 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                                     <p>Загрузка PDF...</p>
                                 </div>
                             }
-                            error={
-                                <div className="pdf-error">
-                                    <i className="fas fa-exclamation-triangle"></i>
-                                    <h3>Ошибка загрузки PDF</h3>
-                                    <p>Не удалось загрузить документ</p>
-                                </div>
-                            }
                         >
                             <Page
                                 pageNumber={pageNumber}
                                 scale={scale}
                                 className="pdf-page"
-                                width={Math.min(containerWidth - 20, 1200)}
-                                renderTextLayer={true}
-                                renderAnnotationLayer={true}
+                                width={Math.min(containerWidth - (isMobile ? 0 : 40), 1200)}
+                                renderTextLayer={!isMobile} // На мобильных отключаем для производительности
+                                renderAnnotationLayer={!isMobile}
                                 loading={
                                     <div className="pdf-loading">
                                         <i className="fas fa-spinner fa-spin"></i>
                                         <p>Загрузка страницы...</p>
                                     </div>
                                 }
-                                error={
-                                    <div className="pdf-error">
-                                        <i className="fas fa-exclamation-triangle"></i>
-                                        <h3>Ошибка загрузки страницы</h3>
-                                    </div>
-                                }
                             />
                         </Document>
                     </div>
                 )}
+
+                {/* Индикатор страницы для мобильных */}
+                {isMobile && (
+                    <div className={`pdf-page-indicator ${showPageIndicator ? 'show' : ''}`}>
+                        <div className="pdf-page-indicator-content">
+                            {pageNumber} / {numPages || '?'}
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* Подсказка для свайпа (показывается только в начале) */}
+            {isMobile && pageNumber === 1 && numPages > 1 && !showPageIndicator && (
+                <div className="pdf-swipe-hint">
+                    <div className="pdf-swipe-hint-content">
+                        <i className="fas fa-arrow-left"></i>
+                        <span>Свайп для перелистывания</span>
+                        <i className="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
