@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import PdfViewer from './PdfViewer';
 
 const FileModal = ({ file, isOpen, onClose }) => {
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [showPdfWarning, setShowPdfWarning] = useState(false);
 
     // Обработчик клавиши Escape
     const handleEscapeKey = useCallback((e) => {
@@ -16,20 +16,13 @@ const FileModal = ({ file, isOpen, onClose }) => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             document.addEventListener('keydown', handleEscapeKey);
-
-            // Для PDF файлов показываем предупреждение
-            if (file?.type === 'document') {
-                const isMobile = window.innerWidth <= 768;
-                setShowPdfWarning(isMobile);
-            }
         }
 
         return () => {
             document.body.style.overflow = 'auto';
             document.removeEventListener('keydown', handleEscapeKey);
-            setShowPdfWarning(false);
         };
-    }, [isOpen, file, handleEscapeKey]);
+    }, [isOpen, handleEscapeKey]);
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -85,39 +78,6 @@ const FileModal = ({ file, isOpen, onClose }) => {
         }
     };
 
-    // Открыть PDF в новой вкладке
-    const openPdfInNewTab = () => {
-        window.open(file.url, '_blank', 'noopener,noreferrer');
-    };
-
-    // Получить URL для PDF с параметрами
-    const getPdfUrl = () => {
-        if (!file || file.type !== 'document') return '';
-
-        let pdfUrl = file.url;
-
-        // Добавляем параметры для лучшего отображения
-        if (!pdfUrl.includes('#')) {
-            pdfUrl += '#toolbar=0&navpanes=0&scrollbar=0';
-        }
-
-        return pdfUrl;
-    };
-
-    // Проверяем, поддерживает ли браузер встроенный просмотр PDF
-    const supportsInlinePdf = () => {
-        const ua = navigator.userAgent.toLowerCase();
-        const isIOS = /iphone|ipad|ipod/.test(ua);
-        const isAndroid = /android/.test(ua);
-
-        // iOS Safari и некоторые Android браузеры не поддерживают PDF в iframe
-        if (isIOS || isAndroid) {
-            return false;
-        }
-
-        return true;
-    };
-
     if (!isOpen || !file) return null;
 
     return (
@@ -129,6 +89,7 @@ const FileModal = ({ file, isOpen, onClose }) => {
                 <div className="modal-header">
                     <div className="modal-title">
                         {file.type === 'image' ? '🖼️' : '📄'} {file.name}
+                        {file.type === 'document' && <span className="file-format"> (PDF)</span>}
                     </div>
 
                     <div className="modal-controls">
@@ -174,78 +135,10 @@ const FileModal = ({ file, isOpen, onClose }) => {
                             }}
                         />
                     ) : (
-                        <div className="pdf-container">
-                            {showPdfWarning && !supportsInlinePdf() ? (
-                                <div className="pdf-mobile-warning">
-                                    <div className="pdf-warning-icon">
-                                        <i className="fas fa-exclamation-triangle"></i>
-                                    </div>
-                                    <h3>Просмотр PDF на мобильном устройстве</h3>
-                                    <p>Ваш браузер не поддерживает встроенный просмотр PDF файлов.</p>
-                                    <p>Вы можете:</p>
-
-                                    <div className="pdf-mobile-options">
-                                        <button
-                                            className="pdf-open-tab-btn"
-                                            onClick={openPdfInNewTab}
-                                        >
-                                            <i className="fas fa-external-link-alt"></i>
-                                            Открыть в новой вкладке
-                                        </button>
-
-                                        <button
-                                            className="pdf-try-anyway-btn"
-                                            onClick={() => setShowPdfWarning(false)}
-                                        >
-                                            <i className="fas fa-sync-alt"></i>
-                                            Попробовать встроенный просмотр
-                                        </button>
-
-                                        <a
-                                            href={file.url}
-                                            download={file.name}
-                                            className="pdf-download-btn"
-                                        >
-                                            <i className="fas fa-download"></i>
-                                            Скачать PDF
-                                        </a>
-                                    </div>
-
-                                    <div className="pdf-mobile-tips">
-                                        <p><strong>Совет:</strong> Для просмотра PDF на мобильном устройстве:</p>
-                                        <ul>
-                                            <li>Используйте приложение для просмотра PDF (Adobe Acrobat Reader, Google PDF Viewer)</li>
-                                            <li>Откройте файл в новой вкладке браузера</li>
-                                            <li>Скачайте файл для офлайн-просмотра</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Пытаемся показать PDF через iframe */}
-                                    <iframe
-                                        className="pdf-iframe"
-                                        src={getPdfUrl()}
-                                        title={file.name}
-                                        frameBorder="0"
-                                        sandbox="allow-same-origin allow-scripts"
-                                        allow="fullscreen"
-                                        style={{ width: '100%', height: '100%' }}
-                                    />
-
-                                    {/* Сообщение если PDF не загрузился */}
-                                    <div className="pdf-fallback" style={{ display: 'none' }}>
-                                        <p>Не удалось загрузить PDF для просмотра.</p>
-                                        <button
-                                            onClick={openPdfInNewTab}
-                                            className="pdf-fallback-btn"
-                                        >
-                                            Открыть в новой вкладке
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                        <PdfViewer
+                            fileUrl={file.url}
+                            fileName={file.name}
+                        />
                     )}
                 </div>
             </div>
