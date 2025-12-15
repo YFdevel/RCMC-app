@@ -207,29 +207,42 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         lastTouchDistanceRef.current = distance;
     }, [isMobile, scale]);
 
-    const handleMultiTouchMove = useCallback((e) => {
-        if (!isMobile || !isPinching || e.touches.length !== 2) return;
+// В функции handleMultiTouchMove добавьте проверку на целевой элемент
+const handleMultiTouchMove = useCallback((e) => {
+    if (!isMobile || !isPinching || e.touches.length !== 2) return;
 
-        e.preventDefault();
+    // Проверяем, что событие происходит внутри PDF просмотрщика
+    const target = e.target;
+    const isInsidePdfViewer = target.closest('.pdf-document-container') ||
+                              target.closest('.react-pdf__Page') ||
+                              target.closest('.react-pdf__Page__canvas');
 
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+    if (!isInsidePdfViewer) return;
 
-        if (initialPinchDistanceRef.current > 0) {
-            const newScale = Math.max(0.5, Math.min(3.0,
-                initialScaleRef.current * (currentDistance / initialPinchDistanceRef.current)));
-            setScale(newScale);
+    e.preventDefault();
+    e.stopPropagation();
 
-            if (Math.abs(currentDistance - lastTouchDistanceRef.current) > 5) {
-                setShowZoomIndicator(true);
-                lastTouchDistanceRef.current = currentDistance;
+    const touch1 = e.touches[0];
+    const touch2 = e.touches[1];
+    const currentDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+    );
 
-                if (zoomIndicatorTimeoutRef.current) clearTimeout(zoomIndicatorTimeoutRef.current);
-                zoomIndicatorTimeoutRef.current = setTimeout(() => setShowZoomIndicator(false), 1500);
-            }
+    if (initialPinchDistanceRef.current > 0) {
+        const newScale = Math.max(0.5, Math.min(3.0,
+            initialScaleRef.current * (currentDistance / initialPinchDistanceRef.current)));
+        setScale(newScale);
+
+        if (Math.abs(currentDistance - lastTouchDistanceRef.current) > 5) {
+            setShowZoomIndicator(true);
+            lastTouchDistanceRef.current = currentDistance;
+
+            if (zoomIndicatorTimeoutRef.current) clearTimeout(zoomIndicatorTimeoutRef.current);
+            zoomIndicatorTimeoutRef.current = setTimeout(() => setShowZoomIndicator(false), 1500);
         }
-    }, [isMobile, isPinching]);
+    }
+}, [isMobile, isPinching]);
 
     const handleMultiTouchEnd = useCallback(() => {
         setIsPinching(false);
