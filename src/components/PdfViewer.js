@@ -14,11 +14,15 @@ const PdfViewer = ({ fileUrl, fileName }) => {
     const [containerHeight, setContainerHeight] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
     const [showPageIndicator, setShowPageIndicator] = useState(false);
+    const [showZoomIndicator, setShowZoomIndicator] = useState(false);
     const [touchStartX, setTouchStartX] = useState(null);
     const [touchEndX, setTouchEndX] = useState(null);
+    const [pinchStartDistance, setPinchStartDistance] = useState(null);
+    const [pinchStartScale, setPinchStartScale] = useState(1.0);
     const containerRef = useRef(null);
     const viewportRef = useRef(null);
     const pageIndicatorTimeoutRef = useRef(null);
+    const zoomIndicatorTimeoutRef = useRef(null);
 
     // Проверяем мобильное устройство
     useEffect(() => {
@@ -144,6 +148,28 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         });
     }, [numPages]);
 
+    // Масштабирование
+    const zoomIn = useCallback(() => {
+        setScale(prev => {
+            const newScale = Math.min(prev + 0.2, 3.0);
+            showZoomIndicatorTemporarily();
+            return newScale;
+        });
+    }, []);
+
+    const zoomOut = useCallback(() => {
+        setScale(prev => {
+            const newScale = Math.max(prev - 0.2, 0.5);
+            showZoomIndicatorTemporarily();
+            return newScale;
+        });
+    }, []);
+
+    const resetZoom = useCallback(() => {
+        setScale(1.0);
+        showZoomIndicatorTemporarily();
+    }, []);
+
     // Показываем индикатор страницы временно
     const showPageIndicatorTemporarily = () => {
         if (!isMobile) return;
@@ -159,23 +185,42 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         }, 1500);
     };
 
-    // Обработка свайпа для мобильных
-    const handleTouchStart = (e) => {
+    // Показываем индикатор масштаба временно
+    const showZoomIndicatorTemporarily = () => {
         if (!isMobile) return;
+
+        setShowZoomIndicator(true);
+
+        if (zoomIndicatorTimeoutRef.current) {
+            clearTimeout(zoomIndicatorTimeoutRef.current);
+        }
+
+        zoomIndicatorTimeoutRef.current = setTimeout(() => {
+            setShowZoomIndicator(false);
+        }, 1500);
+    };
+
+    // Обработка свайпа для навигации по страницам
+    const handleTouchStart = (e) => {
+        if (!isMobile || e.touches.length > 1) return;
+
         setTouchStartX(e.touches[0].clientX);
         setTouchEndX(null);
     };
 
     const handleTouchMove = (e) => {
-        if (!isMobile || !touchStartX) return;
-        setTouchEndX(e.touches[0].clientX);
+        if (!isMobile || e.touches.length > 1) return;
+
+        if (touchStartX !== null) {
+            setTouchEndX(e.touches[0].clientX);
+        }
     };
 
     const handleTouchEnd = () => {
         if (!isMobile || !touchStartX || !touchEndX) return;
 
         const swipeDistance = touchStartX - touchEndX;
-        const minSwipeDistance = 50; // минимальное расстояние для свайпа
+        const minSwipeDistance = 50;
 
         if (Math.abs(swipeDistance) > minSwipeDistance) {
             if (swipeDistance > 0) {
@@ -191,6 +236,60 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         setTouchEndX(null);
     };
 
+    // Обработка pinch-to-zoom для масштабирования
+    const handlePinchStart = (e) => {
+        if (!isMobile || e.touches.length !== 2) return;
+
+        const distance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+
+        setPinchStartDistance(distance);
+        setPinchStartScale(scale);
+    };
+
+    const handlePinchMove = (e) => {
+        if (!isMobile || e.touches.length !== 2 || pinchStartDistance === null) return;
+
+        e.preventDefault();
+
+        const currentDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+
+        const scaleChange = currentDistance / pinchStartDistance;
+        const newScale = Math.max(0.5, Math.min(3.0, pinchStartScale * scaleChange));
+
+        setScale(newScale);
+        setShowZoomIndicator(true);
+    };
+
+    const handlePinchEnd = () => {
+        if (!isMobile) return;
+
+        setPinchStartDistance(null);
+        setPinchStartScale(1.0);
+
+        // Скрываем индикатор масштаба через 1.5 секунды
+        if (zoomIndicatorTimeoutRef.current) {
+            clearTimeout(zoomIndicatorTimeoutRef.current);
+        }
+
+        zoomIndicatorTimeoutRef.current = setTimeout(() => {
+            setShowZoomIndicator(false);
+        }, 1500);
+    };
+
+    // Обработка двойного тапа для сброса масштаба
+    const handleDoubleTap = useCallback((e) => {
+        if (!isMobile) return;
+
+        e.preventDefault();
+        resetZoom();
+    }, [resetZoom]);
+
     // Обработка клавиатурных сокращений (только для десктопа)
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -203,12 +302,21 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             } else if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 goToNextPage();
+            } else if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                zoomIn();
+            } else if (e.key === '-') {
+                e.preventDefault();
+                zoomOut();
+            } else if (e.key === '0') {
+                e.preventDefault();
+                resetZoom();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isMobile, goToPrevPage, goToNextPage]);
+    }, [isMobile, goToPrevPage, goToNextPage, zoomIn, zoomOut, resetZoom]);
 
     // Очистка таймеров
     useEffect(() => {
@@ -216,8 +324,78 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             if (pageIndicatorTimeoutRef.current) {
                 clearTimeout(pageIndicatorTimeoutRef.current);
             }
+            if (zoomIndicatorTimeoutRef.current) {
+                clearTimeout(zoomIndicatorTimeoutRef.current);
+            }
         };
     }, []);
+
+    // Добавляем обработчики для pinch-to-zoom
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport || !isMobile) return;
+
+        const handleTouchStartWrapper = (e) => {
+            if (e.touches.length === 1) {
+                handleTouchStart(e);
+            } else if (e.touches.length === 2) {
+                handlePinchStart(e);
+            }
+        };
+
+        const handleTouchMoveWrapper = (e) => {
+            if (e.touches.length === 1) {
+                handleTouchMove(e);
+            } else if (e.touches.length === 2) {
+                handlePinchMove(e);
+            }
+        };
+
+        const handleTouchEndWrapper = (e) => {
+            handleTouchEnd();
+            handlePinchEnd();
+        };
+
+        // Предотвращаем стандартное масштабирование браузера
+        const preventDefault = (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        };
+
+        viewport.addEventListener('touchstart', handleTouchStartWrapper, { passive: false });
+        viewport.addEventListener('touchmove', handleTouchMoveWrapper, { passive: false });
+        viewport.addEventListener('touchend', handleTouchEndWrapper);
+        viewport.addEventListener('gesturestart', preventDefault);
+        viewport.addEventListener('gesturechange', preventDefault);
+        viewport.addEventListener('gestureend', preventDefault);
+
+        // Обработка двойного тапа
+        let lastTap = 0;
+        const handleTap = (e) => {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+
+            if (tapLength < 300 && tapLength > 0) {
+                handleDoubleTap(e);
+                e.preventDefault();
+            }
+
+            lastTap = currentTime;
+        };
+
+        viewport.addEventListener('touchend', handleTap);
+
+        return () => {
+            viewport.removeEventListener('touchstart', handleTouchStartWrapper);
+            viewport.removeEventListener('touchmove', handleTouchMoveWrapper);
+            viewport.removeEventListener('touchend', handleTouchEndWrapper);
+            viewport.removeEventListener('gesturestart', preventDefault);
+            viewport.removeEventListener('gesturechange', preventDefault);
+            viewport.removeEventListener('gestureend', preventDefault);
+            viewport.removeEventListener('touchend', handleTap);
+        };
+    }, [isMobile, handleDoubleTap]);
 
     // Если файл не существует
     if (!fileExists && !isLoading) {
@@ -234,9 +412,6 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         <div
             className="pdf-presentation-viewer"
             ref={containerRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
         >
             {/* Панель управления (только для десктопа) */}
             {!isMobile && (
@@ -279,6 +454,39 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         </button>
                     </div>
 
+                    <div className="pdf-zoom-controls">
+                        <button
+                            onClick={zoomOut}
+                            disabled={scale <= 0.5 || isLoading || error}
+                            className="pdf-control-btn"
+                            title="Уменьшить масштаб (-)"
+                        >
+                            <i className="fas fa-search-minus"></i>
+                        </button>
+
+                        <span className="zoom-level">
+                            {Math.round(scale * 100)}%
+                        </span>
+
+                        <button
+                            onClick={zoomIn}
+                            disabled={scale >= 3.0 || isLoading || error}
+                            className="pdf-control-btn"
+                            title="Увеличить масштаб (+)"
+                        >
+                            <i className="fas fa-search-plus"></i>
+                        </button>
+
+                        <button
+                            onClick={resetZoom}
+                            disabled={scale === 1.0 || isLoading || error}
+                            className="pdf-control-btn"
+                            title="Сбросить масштаб (0)"
+                        >
+                            <i className="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+
                     <div className="pdf-action-controls">
                         <button
                             onClick={() => window.open(getPdfUrl(), '_blank')}
@@ -292,7 +500,10 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             )}
 
             {/* Область просмотра PDF */}
-            <div className="pdf-viewport" ref={viewportRef}>
+            <div
+                className="pdf-viewport"
+                ref={viewportRef}
+            >
                 {isLoading && (
                     <div className="pdf-loading">
                         <i className="fas fa-spinner fa-spin"></i>
@@ -333,7 +544,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                                 scale={scale}
                                 className="pdf-page"
                                 width={Math.min(containerWidth - (isMobile ? 0 : 40), 1200)}
-                                renderTextLayer={!isMobile} // На мобильных отключаем для производительности
+                                renderTextLayer={!isMobile}
                                 renderAnnotationLayer={!isMobile}
                                 loading={
                                     <div className="pdf-loading">
@@ -354,6 +565,13 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         </div>
                     </div>
                 )}
+
+                {/* Индикатор масштаба для мобильных */}
+                {isMobile && (
+                    <div className={`zoom-indicator ${showZoomIndicator ? 'show' : ''}`}>
+                        {Math.round(scale * 100)}%
+                    </div>
+                )}
             </div>
 
             {/* Подсказка для свайпа (показывается только в начале) */}
@@ -363,6 +581,17 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         <i className="fas fa-arrow-left"></i>
                         <span>Свайп для перелистывания</span>
                         <i className="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+            )}
+
+            {/* Подсказка для масштабирования */}
+            {isMobile && scale === 1.0 && !showZoomIndicator && (
+                <div className="pdf-swipe-hint" style={{ bottom: '70px', animationDelay: '1s' }}>
+                    <div className="pdf-swipe-hint-content">
+                        <i className="fas fa-search-plus"></i>
+                        <span>Pinch для масштабирования</span>
+                        <i className="fas fa-search-minus"></i>
                     </div>
                 </div>
             )}
