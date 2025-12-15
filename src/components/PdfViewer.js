@@ -3,26 +3,32 @@ import { Document, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
 
-const PdfViewer = ({ fileUrl, fileName }) => {
+const PdfViewer = ({ fileUrl, fileName, onClose, onFullscreen }) => {
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [fileExists, setFileExists] = useState(false);
-    const [containerWidth, setContainerWidth] = useState(0);
-    const [containerHeight, setContainerHeight] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
     const [showPageIndicator, setShowPageIndicator] = useState(false);
     const [showZoomIndicator, setShowZoomIndicator] = useState(false);
-    const [touchStartX, setTouchStartX] = useState(null);
-    const [touchEndX, setTouchEndX] = useState(null);
-    const [pinchStartDistance, setPinchStartDistance] = useState(null);
-    const [pinchStartScale, setPinchStartScale] = useState(1.0);
+    const [isPinching, setIsPinching] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const containerRef = useRef(null);
     const viewportRef = useRef(null);
     const pageIndicatorTimeoutRef = useRef(null);
     const zoomIndicatorTimeoutRef = useRef(null);
+
+    // Для обработки свайпа
+    const touchStartXRef = useRef(0);
+    const touchStartYRef = useRef(0);
+    const touchStartTimeRef = useRef(0);
+
+    // Для обработки pinch-to-zoom
+    const initialPinchDistanceRef = useRef(0);
+    const initialScaleRef = useRef(1.0);
+    const lastTouchDistanceRef = useRef(0);
 
     // Проверяем мобильное устройство
     useEffect(() => {
@@ -32,7 +38,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
 
             if (mobile) {
                 const isLandscape = window.innerWidth > window.innerHeight;
-                setScale(isLandscape ? 1.0 : 0.9);
+                setScale(isLandscape ? 1.2 : 1.0);
             } else {
                 setScale(1.0);
             }
@@ -81,33 +87,6 @@ const PdfViewer = ({ fileUrl, fileName }) => {
 
         checkFileExists();
     }, [fileUrl]);
-
-    // Рассчитываем размеры контейнера
-    useEffect(() => {
-        const updateContainerSize = () => {
-            if (viewportRef.current) {
-                const rect = viewportRef.current.getBoundingClientRect();
-                setContainerWidth(rect.width);
-                setContainerHeight(rect.height);
-            }
-        };
-
-        updateContainerSize();
-
-        const resizeObserver = new ResizeObserver(updateContainerSize);
-        if (viewportRef.current) {
-            resizeObserver.observe(viewportRef.current);
-        }
-
-        window.addEventListener('resize', updateContainerSize);
-        window.addEventListener('orientationchange', updateContainerSize);
-
-        return () => {
-            resizeObserver.disconnect();
-            window.removeEventListener('resize', updateContainerSize);
-            window.removeEventListener('orientationchange', updateContainerSize);
-        };
-    }, []);
 
     // Обработка успешной загрузки PDF
     const onDocumentLoadSuccess = ({ numPages }) => {
@@ -200,87 +179,124 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         }, 1500);
     };
 
-    // Обработка свайпа для навигации по страницам
-    const handleTouchStart = (e) => {
-        if (!isMobile || e.touches.length > 1) return;
-
-        setTouchStartX(e.touches[0].clientX);
-        setTouchEndX(null);
-    };
-
-    const handleTouchMove = (e) => {
-        if (!isMobile || e.touches.length > 1) return;
-
-        if (touchStartX !== null) {
-            setTouchEndX(e.touches[0].clientX);
+    // Обработка касания для свайпа
+    const handleTouchStart = useCallback((e) => {
+        if (!isMobile || e.touches.length > 1) {
+            return;
         }
-    };
 
-    const handleTouchEnd = () => {
-        if (!isMobile || !touchStartX || !touchEndX) return;
+        touchStartXRef.current = e.touches[0].clientX;
+        touchStartYRef.current = e.touches[0].clientY;
+        touchStartTimeRef.current = Date.now();
+    }, [isMobile]);
 
-        const swipeDistance = touchStartX - touchEndX;
-        const minSwipeDistance = 50;
+    const handleTouchMove = useCallback((e) => {
+        if (!isMobile || isPinching || e.touches.length > 1) {
+            return;
+        }
 
-        if (Math.abs(swipeDistance) > minSwipeDistance) {
-            if (swipeDistance > 0) {
-                // Свайп влево - следующая страница
-                goToNextPage();
-            } else {
+        // Если масштабируем, не обрабатываем свайп
+        if (scale !== 1.0) {
+            return;
+        }
+
+        e.preventDefault();
+    }, [isMobile, isPinching, scale]);
+
+    const handleTouchEnd = useCallback((e) => {
+        if (!isMobile || isPinching || e.changedTouches.length !== 1) {
+            setIsPinching(false);
+            return;
+        }
+
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const touchEndTime = Date.now();
+
+        const deltaX = touchEndX - touchStartXRef.current;
+        const deltaY = touchEndY - touchStartYRef.current;
+        const deltaTime = touchEndTime - touchStartTimeRef.current;
+
+        // Проверяем, что это был свайп (а не просто тап)
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const isHorizontalSwipe = Math.abs(deltaX) > Math.abs(deltaY);
+
+        if (distance > 30 && deltaTime < 300 && isHorizontalSwipe) {
+            // Определяем направление свайпа
+            if (deltaX > 0) {
                 // Свайп вправо - предыдущая страница
                 goToPrevPage();
+            } else {
+                // Свайп влево - следующая страница
+                goToNextPage();
             }
         }
 
-        setTouchStartX(null);
-        setTouchEndX(null);
-    };
+        setIsPinching(false);
+    }, [isMobile, isPinching, goToPrevPage, goToNextPage]);
 
-    // Обработка pinch-to-zoom для масштабирования
-    const handlePinchStart = (e) => {
-        if (!isMobile || e.touches.length !== 2) return;
+    // Обработка pinch-to-zoom
+    const handleMultiTouchStart = useCallback((e) => {
+        if (!isMobile || e.touches.length !== 2) {
+            return;
+        }
 
-        const distance = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
+        setIsPinching(true);
+        e.preventDefault();
+
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+
+        const distance = Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) +
+            Math.pow(touch2.clientY - touch1.clientY, 2)
         );
 
-        setPinchStartDistance(distance);
-        setPinchStartScale(scale);
-    };
+        initialPinchDistanceRef.current = distance;
+        initialScaleRef.current = scale;
+        lastTouchDistanceRef.current = distance;
+    }, [isMobile, scale]);
 
-    const handlePinchMove = (e) => {
-        if (!isMobile || e.touches.length !== 2 || pinchStartDistance === null) return;
+    const handleMultiTouchMove = useCallback((e) => {
+        if (!isMobile || !isPinching || e.touches.length !== 2) {
+            return;
+        }
 
         e.preventDefault();
 
-        const currentDistance = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+
+        const currentDistance = Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) +
+            Math.pow(touch2.clientY - touch1.clientY, 2)
         );
 
-        const scaleChange = currentDistance / pinchStartDistance;
-        const newScale = Math.max(0.5, Math.min(3.0, pinchStartScale * scaleChange));
+        if (initialPinchDistanceRef.current > 0) {
+            const scaleChange = currentDistance / initialPinchDistanceRef.current;
+            const newScale = Math.max(0.5, Math.min(3.0, initialScaleRef.current * scaleChange));
 
-        setScale(newScale);
-        setShowZoomIndicator(true);
-    };
+            setScale(newScale);
 
-    const handlePinchEnd = () => {
-        if (!isMobile) return;
+            if (Math.abs(currentDistance - lastTouchDistanceRef.current) > 5) {
+                setShowZoomIndicator(true);
+                lastTouchDistanceRef.current = currentDistance;
 
-        setPinchStartDistance(null);
-        setPinchStartScale(1.0);
-
-        // Скрываем индикатор масштаба через 1.5 секунды
-        if (zoomIndicatorTimeoutRef.current) {
-            clearTimeout(zoomIndicatorTimeoutRef.current);
+                if (zoomIndicatorTimeoutRef.current) {
+                    clearTimeout(zoomIndicatorTimeoutRef.current);
+                }
+                zoomIndicatorTimeoutRef.current = setTimeout(() => {
+                    setShowZoomIndicator(false);
+                }, 1500);
+            }
         }
+    }, [isMobile, isPinching]);
 
-        zoomIndicatorTimeoutRef.current = setTimeout(() => {
-            setShowZoomIndicator(false);
-        }, 1500);
-    };
+    const handleMultiTouchEnd = useCallback(() => {
+        setIsPinching(false);
+        initialPinchDistanceRef.current = 0;
+        initialScaleRef.current = 1.0;
+    }, []);
 
     // Обработка двойного тапа для сброса масштаба
     const handleDoubleTap = useCallback((e) => {
@@ -288,12 +304,123 @@ const PdfViewer = ({ fileUrl, fileName }) => {
 
         e.preventDefault();
         resetZoom();
-    }, [resetZoom]);
+    }, [isMobile, resetZoom]);
+
+    // Полноэкранный режим
+    const toggleFullscreen = useCallback(() => {
+        const modalContent = document.querySelector('.modal-content');
+        if (!modalContent) return;
+
+        if (!document.fullscreenElement) {
+            if (modalContent.requestFullscreen) {
+                modalContent.requestFullscreen();
+            } else if (modalContent.webkitRequestFullscreen) {
+                modalContent.webkitRequestFullscreen();
+            } else if (modalContent.msRequestFullscreen) {
+                modalContent.msRequestFullscreen();
+            }
+            setIsFullscreen(true);
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            setIsFullscreen(false);
+        }
+
+        if (onFullscreen) {
+            onFullscreen(!isFullscreen);
+        }
+    }, [isFullscreen, onFullscreen]);
+
+    // Обработчик выхода из полноэкранного режима
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
+    // Устанавливаем обработчики касаний
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport || !isMobile) return;
+
+        let tapCount = 0;
+        let tapTimer = null;
+
+        const handleTap = (e) => {
+            if (e.touches && e.touches.length > 1) {
+                return; // Это не тап, если больше одного касания
+            }
+
+            tapCount++;
+
+            if (tapCount === 1) {
+                tapTimer = setTimeout(() => {
+                    tapCount = 0;
+                }, 300);
+            } else if (tapCount === 2) {
+                clearTimeout(tapTimer);
+                handleDoubleTap(e);
+                tapCount = 0;
+            }
+        };
+
+        // Основные обработчики событий
+        const handleTouchStartWrapper = (e) => {
+            if (e.touches.length === 1) {
+                handleTouchStart(e);
+            } else if (e.touches.length === 2) {
+                handleMultiTouchStart(e);
+            }
+            handleTap(e);
+        };
+
+        const handleTouchMoveWrapper = (e) => {
+            if (e.touches.length === 1) {
+                handleTouchMove(e);
+            } else if (e.touches.length === 2) {
+                handleMultiTouchMove(e);
+            }
+        };
+
+        const handleTouchEndWrapper = (e) => {
+            if (e.touches.length === 0) {
+                handleTouchEnd(e);
+                handleMultiTouchEnd();
+            }
+        };
+
+        viewport.addEventListener('touchstart', handleTouchStartWrapper, { passive: false });
+        viewport.addEventListener('touchmove', handleTouchMoveWrapper, { passive: false });
+        viewport.addEventListener('touchend', handleTouchEndWrapper);
+        viewport.addEventListener('touchcancel', handleTouchEndWrapper);
+
+        return () => {
+            viewport.removeEventListener('touchstart', handleTouchStartWrapper);
+            viewport.removeEventListener('touchmove', handleTouchMoveWrapper);
+            viewport.removeEventListener('touchend', handleTouchEndWrapper);
+            viewport.removeEventListener('touchcancel', handleTouchEndWrapper);
+            if (tapTimer) clearTimeout(tapTimer);
+        };
+    }, [isMobile, handleTouchStart, handleTouchMove, handleTouchEnd, handleMultiTouchStart, handleMultiTouchMove, handleMultiTouchEnd, handleDoubleTap]);
 
     // Обработка клавиатурных сокращений (только для десктопа)
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // Только для десктопа
             if (isMobile) return;
 
             if (e.key === 'ArrowLeft') {
@@ -311,12 +438,18 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             } else if (e.key === '0') {
                 e.preventDefault();
                 resetZoom();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                if (onClose) onClose();
+            } else if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                toggleFullscreen();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isMobile, goToPrevPage, goToNextPage, zoomIn, zoomOut, resetZoom]);
+    }, [isMobile, goToPrevPage, goToNextPage, zoomIn, zoomOut, resetZoom, onClose, toggleFullscreen]);
 
     // Очистка таймеров
     useEffect(() => {
@@ -329,73 +462,6 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             }
         };
     }, []);
-
-    // Добавляем обработчики для pinch-to-zoom
-    useEffect(() => {
-        const viewport = viewportRef.current;
-        if (!viewport || !isMobile) return;
-
-        const handleTouchStartWrapper = (e) => {
-            if (e.touches.length === 1) {
-                handleTouchStart(e);
-            } else if (e.touches.length === 2) {
-                handlePinchStart(e);
-            }
-        };
-
-        const handleTouchMoveWrapper = (e) => {
-            if (e.touches.length === 1) {
-                handleTouchMove(e);
-            } else if (e.touches.length === 2) {
-                handlePinchMove(e);
-            }
-        };
-
-        const handleTouchEndWrapper = (e) => {
-            handleTouchEnd();
-            handlePinchEnd();
-        };
-
-        // Предотвращаем стандартное масштабирование браузера
-        const preventDefault = (e) => {
-            if (e.touches.length > 1) {
-                e.preventDefault();
-            }
-        };
-
-        viewport.addEventListener('touchstart', handleTouchStartWrapper, { passive: false });
-        viewport.addEventListener('touchmove', handleTouchMoveWrapper, { passive: false });
-        viewport.addEventListener('touchend', handleTouchEndWrapper);
-        viewport.addEventListener('gesturestart', preventDefault);
-        viewport.addEventListener('gesturechange', preventDefault);
-        viewport.addEventListener('gestureend', preventDefault);
-
-        // Обработка двойного тапа
-        let lastTap = 0;
-        const handleTap = (e) => {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-
-            if (tapLength < 300 && tapLength > 0) {
-                handleDoubleTap(e);
-                e.preventDefault();
-            }
-
-            lastTap = currentTime;
-        };
-
-        viewport.addEventListener('touchend', handleTap);
-
-        return () => {
-            viewport.removeEventListener('touchstart', handleTouchStartWrapper);
-            viewport.removeEventListener('touchmove', handleTouchMoveWrapper);
-            viewport.removeEventListener('touchend', handleTouchEndWrapper);
-            viewport.removeEventListener('gesturestart', preventDefault);
-            viewport.removeEventListener('gesturechange', preventDefault);
-            viewport.removeEventListener('gestureend', preventDefault);
-            viewport.removeEventListener('touchend', handleTap);
-        };
-    }, [isMobile, handleDoubleTap]);
 
     // Если файл не существует
     if (!fileExists && !isLoading) {
@@ -489,6 +555,14 @@ const PdfViewer = ({ fileUrl, fileName }) => {
 
                     <div className="pdf-action-controls">
                         <button
+                            onClick={toggleFullscreen}
+                            className="pdf-control-btn"
+                            title="Полноэкранный режим (F)"
+                        >
+                            <i className={isFullscreen ? "fas fa-compress" : "fas fa-expand"}></i>
+                        </button>
+
+                        <button
                             onClick={() => window.open(getPdfUrl(), '_blank')}
                             className="pdf-control-btn"
                             title="Открыть в новой вкладке"
@@ -543,7 +617,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                                 pageNumber={pageNumber}
                                 scale={scale}
                                 className="pdf-page"
-                                width={Math.min(containerWidth - (isMobile ? 0 : 40), 1200)}
+                                width={isMobile ? window.innerWidth * 0.95 : null}
                                 renderTextLayer={!isMobile}
                                 renderAnnotationLayer={!isMobile}
                                 loading={
@@ -568,14 +642,16 @@ const PdfViewer = ({ fileUrl, fileName }) => {
 
                 {/* Индикатор масштаба для мобильных */}
                 {isMobile && (
-                    <div className={`zoom-indicator ${showZoomIndicator ? 'show' : ''}`}>
+                    <div className={`pdf-zoom-indicator ${showZoomIndicator ? 'show' : ''}`}>
                         {Math.round(scale * 100)}%
                     </div>
                 )}
             </div>
 
+            {/* Кнопки управления для мобильных (рендерятся отдельно в Modal) */}
+
             {/* Подсказка для свайпа (показывается только в начале) */}
-            {isMobile && pageNumber === 1 && numPages > 1 && !showPageIndicator && (
+            {isMobile && pageNumber === 1 && numPages > 1 && !showPageIndicator && scale === 1.0 && (
                 <div className="pdf-swipe-hint">
                     <div className="pdf-swipe-hint-content">
                         <i className="fas fa-arrow-left"></i>
@@ -586,7 +662,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             )}
 
             {/* Подсказка для масштабирования */}
-            {isMobile && scale === 1.0 && !showZoomIndicator && (
+            {isMobile && scale === 1.0 && !showZoomIndicator && !showPageIndicator && (
                 <div className="pdf-swipe-hint" style={{ bottom: '70px', animationDelay: '1s' }}>
                     <div className="pdf-swipe-hint-content">
                         <i className="fas fa-search-plus"></i>
