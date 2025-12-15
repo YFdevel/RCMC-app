@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
@@ -10,6 +10,11 @@ const PdfViewer = ({ fileUrl, fileName }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [fileExists, setFileExists] = useState(false);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const [containerHeight, setContainerHeight] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+    const containerRef = useRef(null);
+    const viewportRef = useRef(null);
 
     // Проверяем существование файла перед загрузкой
     useEffect(() => {
@@ -50,6 +55,58 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             checkFileExists();
         }
     }, [fileUrl]);
+
+    // Проверяем мобильное устройство
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth <= 768;
+            setIsMobile(mobile);
+            
+            // Автоматически подбираем масштаб для мобильных устройств
+            if (mobile) {
+                const isLandscape = window.innerWidth > window.innerHeight;
+                setScale(isLandscape ? 0.85 : 0.75);
+            } else {
+                setScale(1.0);
+            }
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        window.addEventListener('orientationchange', checkMobile);
+        
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+            window.removeEventListener('orientationchange', checkMobile);
+        };
+    }, []);
+
+    // Рассчитываем размеры контейнера
+    useEffect(() => {
+        const updateContainerSize = () => {
+            if (containerRef.current && viewportRef.current) {
+                const viewportRect = viewportRef.current.getBoundingClientRect();
+                setContainerWidth(viewportRect.width);
+                setContainerHeight(viewportRect.height);
+            }
+        };
+
+        updateContainerSize();
+        
+        const resizeObserver = new ResizeObserver(updateContainerSize);
+        if (viewportRef.current) {
+            resizeObserver.observe(viewportRef.current);
+        }
+        
+        window.addEventListener('resize', updateContainerSize);
+        window.addEventListener('orientationchange', updateContainerSize);
+
+        return () => {
+            resizeObserver.disconnect();
+            window.removeEventListener('resize', updateContainerSize);
+            window.removeEventListener('orientationchange', updateContainerSize);
+        };
+    }, []);
 
     // Обработка успешной загрузки PDF
     const onDocumentLoadSuccess = ({ numPages }) => {
@@ -108,6 +165,64 @@ const PdfViewer = ({ fileUrl, fileName }) => {
         setPageNumber(prev => Math.min(prev + 1, numPages || 1));
     };
 
+    // Переход к конкретной странице
+    const goToPage = (e) => {
+        const page = parseInt(e.target.value);
+        if (!isNaN(page) && page >= 1 && page <= (numPages || 1)) {
+            setPageNumber(page);
+        }
+    };
+
+    // Изменение масштаба
+    const zoomIn = () => {
+        setScale(prev => Math.min(prev + 0.1, 2.0));
+    };
+
+    const zoomOut = () => {
+        setScale(prev => Math.max(prev - 0.1, 0.5));
+    };
+
+    const resetZoom = () => {
+        if (isMobile) {
+            const isLandscape = window.innerWidth > window.innerHeight;
+            setScale(isLandscape ? 0.85 : 0.75);
+        } else {
+            setScale(1.0);
+        }
+    };
+
+    // Обработка клавиатурных сокращений
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Стрелки для навигации
+            if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                goToPrevPage();
+            } else if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                goToNextPage();
+            }
+            // Ctrl/Cmd + для масштабирования
+            else if ((e.ctrlKey || e.metaKey) && e.key === '=') {
+                e.preventDefault();
+                zoomIn();
+            }
+            // Ctrl/Cmd - для уменьшения
+            else if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+                e.preventDefault();
+                zoomOut();
+            }
+            // Ctrl/Cmd 0 для сброса масштаба
+            else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                e.preventDefault();
+                resetZoom();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [pageNumber, numPages, scale, isMobile]);
+
     // Если файл не существует, показываем сообщение об ошибке
     if (!fileExists && !isLoading) {
         return (
@@ -122,7 +237,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
     }
 
     return (
-        <div className="pdf-presentation-viewer">
+        <div className="pdf-presentation-viewer" ref={containerRef}>
             {/* Панель управления */}
             <div className="pdf-controls">
                 <div className="pdf-nav-controls">
@@ -130,13 +245,21 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         onClick={goToPrevPage}
                         disabled={pageNumber <= 1 || isLoading || error}
                         className="pdf-control-btn"
-                        title="Предыдущая страница"
+                        title="Предыдущая страница (←)"
                     >
                         <i className="fas fa-chevron-left"></i>
                     </button>
 
                     <div className="page-info">
-                        <span className="page-current">{pageNumber}</span>
+                        <input
+                            type="number"
+                            value={pageNumber}
+                            onChange={goToPage}
+                            min="1"
+                            max={numPages || 1}
+                            className="page-input"
+                            disabled={isLoading || error}
+                        />
                         <span className="page-total"> / {numPages || '?'}</span>
                     </div>
 
@@ -144,13 +267,55 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         onClick={goToNextPage}
                         disabled={pageNumber >= (numPages || 1) || isLoading || error}
                         className="pdf-control-btn"
-                        title="Следующая страница"
+                        title="Следующая страница (→)"
                     >
                         <i className="fas fa-chevron-right"></i>
                     </button>
                 </div>
 
+                {!isMobile && (
+                    <div className="pdf-zoom-controls">
+                        <button
+                            onClick={zoomOut}
+                            disabled={isLoading || error}
+                            className="pdf-control-btn"
+                            title="Уменьшить (Ctrl -)"
+                        >
+                            <i className="fas fa-search-minus"></i>
+                        </button>
+                        
+                        <button
+                            onClick={resetZoom}
+                            disabled={isLoading || error}
+                            className="pdf-control-btn"
+                            title="Сбросить масштаб (Ctrl 0)"
+                        >
+                            <span className="zoom-level">{Math.round(scale * 100)}%</span>
+                        </button>
+                        
+                        <button
+                            onClick={zoomIn}
+                            disabled={isLoading || error}
+                            className="pdf-control-btn"
+                            title="Увеличить (Ctrl +)"
+                        >
+                            <i className="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                )}
+
                 <div className="pdf-action-controls">
+                    {isMobile && (
+                        <button
+                            onClick={resetZoom}
+                            disabled={isLoading || error}
+                            className="pdf-control-btn"
+                            title="Масштаб"
+                        >
+                            <span className="zoom-level">{Math.round(scale * 100)}%</span>
+                        </button>
+                    )}
+                    
                     <button
                         onClick={openInNewTab}
                         className="pdf-control-btn"
@@ -170,7 +335,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
             </div>
 
             {/* Область просмотра PDF */}
-            <div className="pdf-viewport">
+            <div className="pdf-viewport" ref={viewportRef}>
                 {isLoading && (
                     <div className="pdf-loading">
                         <i className="fas fa-spinner fa-spin"></i>
@@ -185,7 +350,7 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                         <p>{error}</p>
                         <button
                             onClick={openInNewTab}
-                            className="pdf-open-tab-btn"
+                            className="pdf-error-link"
                         >
                             <i className="fas fa-external-link-alt"></i>
                             Открыть в новой вкладке
@@ -205,11 +370,33 @@ const PdfViewer = ({ fileUrl, fileName }) => {
                                     <p>Загрузка PDF...</p>
                                 </div>
                             }
+                            error={
+                                <div className="pdf-error">
+                                    <i className="fas fa-exclamation-triangle"></i>
+                                    <h3>Ошибка загрузки PDF</h3>
+                                    <p>Не удалось загрузить документ</p>
+                                </div>
+                            }
                         >
                             <Page
                                 pageNumber={pageNumber}
                                 scale={scale}
                                 className="pdf-page"
+                                width={Math.min(containerWidth - 20, 1200)}
+                                renderTextLayer={true}
+                                renderAnnotationLayer={true}
+                                loading={
+                                    <div className="pdf-loading">
+                                        <i className="fas fa-spinner fa-spin"></i>
+                                        <p>Загрузка страницы...</p>
+                                    </div>
+                                }
+                                error={
+                                    <div className="pdf-error">
+                                        <i className="fas fa-exclamation-triangle"></i>
+                                        <h3>Ошибка загрузки страницы</h3>
+                                    </div>
+                                }
                             />
                         </Document>
                     </div>

@@ -1192,397 +1192,7 @@ body {
     }
 }
 
-/* ===== СТИЛИ ДЛЯ PDF ПРОСМОТРА ===== */
-
-.pdf-viewer-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-}
-
-.mobile-pdf-info {
-    background: rgba(52, 152, 219, 0.1);
-    border-left: 4px solid var(--secondary);
-    padding: 12px 15px;
-    margin-bottom: 15px;
-    border-radius: var(--radius);
-    color: var(--dark);
-    font-size: 0.9rem;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    flex-shrink: 0;
-}
-
-.mobile-pdf-info i {
-    color: var(--secondary);
-    margin-right: 8px;
-}
-
-.mobile-pdf-hint {
-    font-size: 0.85rem;
-    color: var(--gray);
-    font-style: italic;
-}
-
-.mobile-pdf-fallback {
-    background: rgba(231, 76, 60, 0.1);
-    border-left: 4px solid var(--accent);
-    padding: 15px;
-    margin-top: 15px;
-    border-radius: var(--radius);
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.mobile-pdf-fallback p {
-    color: var(--dark);
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-}
-
-.mobile-pdf-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--secondary);
-    color: white;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.mobile-pdf-link:hover {
-    background: #2980b9;
-    transform: translateY(-2px);
-}
-
-/* Адаптация iframe для PDF */
-.modal-document {
-    width: 100%;
-    height: 100%;
-    border: none;
-    background: white;
-    flex: 1;
-}
-
-/* Для мобильных устройств настраиваем высоту PDF */
-@media (max-width: 768px) {
-    .modal-body {
-        flex-direction: column;
-    }
-
-    .pdf-viewer-container {
-        height: 100%;
-    }
-
-    .modal-document {
-        height: calc(100% - 120px); /* Учитываем высоту информационных блоков */
-    }
-}
-
-/* Улучшения для очень маленьких экранов */
-@media (max-width: 576px) {
-    .mobile-pdf-info {
-        padding: 10px;
-        font-size: 0.85rem;
-    }
-
-    .mobile-pdf-hint {
-        font-size: 0.8rem;
-    }
-
-    .mobile-pdf-fallback {
-        padding: 10px;
-    }
-
-    .mobile-pdf-link {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-    }
-
-    .modal-document {
-        height: calc(100% - 140px);
-    }
-}
-
-/* Альтернативный вариант для PDF на мобильных */
-.pdf-native-view {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .pdf-native-view {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
-
-    /* Скрываем стандартный iframe на мобильных, если используется нативный просмотр */
-    .pdf-native-view.active ~ .modal-document {
-        display: none;
-    }
-}
-
-/* Уведомление о загрузке PDF */
-.pdf-loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: var(--gray);
-    z-index: 1;
-}
-
-.pdf-loading i {
-    font-size: 2rem;
-    margin-bottom: 10px;
-    color: var(--secondary);
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-
-/* ===== СТИЛИ ДЛЯ PDF НА МОБИЛЬНЫХ ===== */
-
-.pdf-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-.pdf-mobile-warning {
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 30px;
-    max-width: 500px;
-    width: 100%;
-    box-shadow: var(--shadow-lg);
-    text-align: center;
-}
-
-.pdf-warning-icon {
-    font-size: 3rem;
-    color: var(--warning);
-    margin-bottom: 20px;
-}
-
-.pdf-mobile-warning h3 {
-    color: var(--dark);
-    margin-bottom: 15px;
-    font-size: 1.5rem;
-}
-
-.pdf-mobile-warning p {
-    color: var(--gray);
-    margin-bottom: 10px;
-    line-height: 1.5;
-}
-
-.pdf-mobile-options {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin: 25px 0;
-}
-
-.pdf-open-tab-btn,
-.pdf-try-anyway-btn,
-.pdf-download-btn {
-    padding: 15px;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    text-decoration: none;
-}
-
-.pdf-open-tab-btn {
-    background: linear-gradient(135deg, var(--secondary), #2980b9);
-    color: white;
-}
-
-.pdf-open-tab-btn:hover {
-    background: linear-gradient(135deg, #2980b9, var(--secondary));
-    transform: translateY(-2px);
-}
-
-.pdf-try-anyway-btn {
-    background: linear-gradient(135deg, var(--warning), #e67e22);
-    color: white;
-}
-
-.pdf-try-anyway-btn:hover {
-    background: linear-gradient(135deg, #e67e22, var(--warning));
-    transform: translateY(-2px);
-}
-
-.pdf-download-btn {
-    background: linear-gradient(135deg, var(--success), #27ae60);
-    color: white;
-}
-
-.pdf-download-btn:hover {
-    background: linear-gradient(135deg, #27ae60, var(--success));
-    transform: translateY(-2px);
-}
-
-.pdf-mobile-tips {
-    background: var(--light);
-    border-radius: var(--radius);
-    padding: 15px;
-    margin-top: 20px;
-    text-align: left;
-}
-
-.pdf-mobile-tips p {
-    color: var(--dark);
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.pdf-mobile-tips ul {
-    padding-left: 20px;
-    color: var(--gray);
-    line-height: 1.6;
-}
-
-.pdf-mobile-tips li {
-    margin-bottom: 8px;
-}
-
-/* Iframe для PDF */
-.pdf-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    background: white;
-    border-radius: var(--radius);
-}
-
-/* Фолбэк если PDF не загрузился */
-.pdf-fallback {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.95);
-    padding: 30px;
-    border-radius: var(--radius-lg);
-    text-align: center;
-    box-shadow: var(--shadow-lg);
-    z-index: 2;
-}
-
-.pdf-fallback p {
-    color: var(--dark);
-    margin-bottom: 20px;
-    font-size: 1.1rem;
-}
-
-.pdf-fallback-btn {
-    padding: 12px 25px;
-    background: var(--secondary);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.pdf-fallback-btn:hover {
-    background: #2980b9;
-    transform: translateY(-2px);
-}
-
-/* Для десктопов - показываем PDF сразу */
-@media (min-width: 769px) {
-    .pdf-container {
-        padding: 0;
-    }
-
-    .pdf-iframe {
-        border-radius: 0;
-    }
-}
-
-/* Для мобильных устройств */
-@media (max-width: 768px) {
-    .pdf-mobile-warning {
-        padding: 20px;
-        margin: 20px;
-    }
-
-    .pdf-mobile-options {
-        gap: 12px;
-    }
-
-    .pdf-open-tab-btn,
-    .pdf-try-anyway-btn,
-    .pdf-download-btn {
-        padding: 12px;
-        font-size: 0.9rem;
-    }
-
-    .pdf-mobile-tips {
-        font-size: 0.9rem;
-        padding: 12px;
-    }
-}
-
-/* Очень маленькие экраны */
-@media (max-width: 576px) {
-    .pdf-mobile-warning {
-        padding: 15px;
-        margin: 10px;
-    }
-
-    .pdf-warning-icon {
-        font-size: 2.5rem;
-    }
-
-    .pdf-mobile-warning h3 {
-        font-size: 1.3rem;
-    }
-
-    .pdf-mobile-options {
-        gap: 10px;
-    }
-
-    .pdf-open-tab-btn,
-    .pdf-try-anyway-btn,
-    .pdf-download-btn {
-        padding: 10px;
-        font-size: 0.85rem;
-    }
-
-    .pdf-mobile-tips {
-        font-size: 0.85rem;
-        padding: 10px;
-    }
-}
+/* ===== ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ PDF ПРОСМОТРА ===== */
 
 /* ===== СТИЛИ ДЛЯ PDF ПРЕЗЕНТАЦИИ ===== */
 
@@ -1592,7 +1202,6 @@ body {
     display: flex;
     flex-direction: column;
     background: #f5f5f5;
-    border-radius: 8px;
     overflow: hidden;
 }
 
@@ -1603,50 +1212,632 @@ body {
     align-items: center;
     background: linear-gradient(135deg, var(--primary), var(--primary-light));
     color: white;
-    padding: 12px 20px;
+    padding: 4px 10px;
     flex-shrink: 0;
-    gap: 20px;
+    gap: 10px;
+    height: 42px;
+    min-height: 42px;
+    flex-wrap: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
 }
 
+/* Группы элементов управления */
 .pdf-nav-controls,
 .pdf-zoom-controls,
-.pdf-extra-controls {
+.pdf-action-controls {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
+    height: 100%;
+    flex-shrink: 0;
 }
 
+/* Кнопки управления */
 .pdf-control-btn {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.12);
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    font-size: 0.9rem;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    padding: 0;
 }
 
 .pdf-control-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-control-btn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .pdf-control-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    transform: none !important;
 }
 
-.pdf-control-btn.pdf-download-btn {
-    text-decoration: none;
-    width: auto;
-    padding: 0 15px;
-    border-radius: 20px;
+/* Информация о странице */
+.page-info {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: 14px;
+    height: 28px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
+
+.page-input {
+    width: 35px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 0.85rem;
+    text-align: center;
+    font-weight: 600;
+    padding: 0;
+    height: 100%;
+    -moz-appearance: textfield;
+}
+
+.page-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+}
+
+.page-input::-webkit-outer-spin-button,
+.page-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.page-total {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+}
+
+/* Уровень масштаба */
+.zoom-level {
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 32px;
+    text-align: center;
+}
+
+/* Область просмотра PDF */
+.pdf-viewport {
+    flex: 1;
+    overflow: auto;
+    padding: 0;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+    width: 100%;
+    height: calc(100% - 42px);
+}
+
+/* Контейнер документа */
+.pdf-document-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    overflow: auto;
+    background: transparent;
+}
+
+/* Стили для react-pdf */
+.react-pdf__Page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.react-pdf__Page__canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    background: white;
+}
+
+/* Индикатор загрузки */
+.pdf-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--gray);
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px 30px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.pdf-loading i {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: var(--secondary);
+    animation: spin 1s linear infinite;
+}
+
+.pdf-loading p {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--dark);
+    margin: 0;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Сообщение об ошибке */
+.pdf-error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background: white;
+    padding: 25px 30px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    max-width: 400px;
+    width: 90%;
+    z-index: 10;
+}
+
+.pdf-error i {
+    font-size: 2.2rem;
+    color: var(--accent);
+    margin-bottom: 15px;
+}
+
+.pdf-error h3 {
+    color: var(--dark);
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.pdf-error p {
+    color: var(--dark);
+    margin-bottom: 20px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.pdf-error-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--secondary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.pdf-error-link:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+/* ===== АДАПТИВНОСТЬ ===== */
+
+/* Планшеты */
+@media (max-width: 1024px) {
+    .pdf-controls {
+        height: 40px;
+        min-height: 40px;
+        padding: 3px 8px;
+        gap: 8px;
+    }
+
+    .pdf-control-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+    }
+
+    .page-info {
+        padding: 2px 6px;
+        height: 26px;
+    }
+
+    .page-input {
+        width: 32px;
+        font-size: 0.8rem;
+    }
+
+    .page-total {
+        font-size: 0.75rem;
+    }
+
+    .zoom-level {
+        font-size: 0.75rem;
+        min-width: 30px;
+    }
+
+    .pdf-viewport {
+        height: calc(100% - 40px);
+    }
+}
+
+/* Мобильные устройства */
+@media (max-width: 768px) {
+    .pdf-controls {
+        height: 38px;
+        min-height: 38px;
+        padding: 2px 6px;
+        gap: 6px;
+    }
+
+    .pdf-nav-controls,
+    .pdf-zoom-controls,
+    .pdf-action-controls {
+        gap: 4px;
+    }
+
+    .pdf-control-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+
+    .page-info {
+        padding: 1px 5px;
+        height: 24px;
+    }
+
+    .page-input {
+        width: 28px;
+        font-size: 0.75rem;
+    }
+
+    .page-total {
+        font-size: 0.7rem;
+    }
+
+    .zoom-level {
+        font-size: 0.7rem;
+        min-width: 28px;
+    }
+
+    .pdf-viewport {
+        height: calc(100% - 38px);
+    }
+
+    .pdf-document-container {
+        padding: 5px;
+    }
+}
+
+/* Горизонтальная ориентация на мобильных */
+@media (max-width: 768px) and (orientation: landscape) {
+    .pdf-controls {
+        height: 36px;
+        min-height: 36px;
+        padding: 2px 4px;
+        gap: 4px;
+    }
+
+    .pdf-control-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.75rem;
+    }
+
+    .page-info {
+        padding: 1px 4px;
+        height: 22px;
+    }
+
+    .page-input {
+        width: 26px;
+        font-size: 0.7rem;
+    }
+
+    .zoom-level {
+        font-size: 0.65rem;
+        min-width: 26px;
+    }
+
+    .pdf-viewport {
+        height: calc(100% - 36px);
+    }
+}
+
+/* Очень маленькие экраны */
+@media (max-width: 576px) {
+    .pdf-controls {
+        height: 36px;
+        min-height: 36px;
+        padding: 2px 4px;
+        gap: 4px;
+    }
+
+    /* На очень маленьких экранах скрываем элементы масштабирования */
+    .pdf-zoom-controls {
+        display: none !important;
+    }
+
+    /* Перераспределяем пространство */
+    .pdf-nav-controls {
+        flex: 1;
+        justify-content: flex-start;
+    }
+
+    .pdf-action-controls {
+        flex: 0;
+        justify-content: flex-end;
+    }
+
+    .pdf-control-btn {
+        width: 28px;
+        height: 28px;
+    }
+
+    .page-info {
+        padding: 1px 4px;
+    }
+
+    .page-input {
+        width: 26px;
+    }
+
+    .pdf-viewport {
+        height: calc(100% - 36px);
+    }
+}
+
+/* Очень маленькие экраны в портретной ориентации */
+@media (max-width: 375px) and (orientation: portrait) {
+    .pdf-controls {
+        padding: 1px 3px;
+    }
+
+    .pdf-control-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.7rem;
+    }
+
+    .page-info {
+        padding: 0 3px;
+        height: 22px;
+    }
+
+    .page-input {
+        width: 22px;
+        font-size: 0.65rem;
+    }
+
+    .page-total {
+        font-size: 0.65rem;
+    }
+
+    .zoom-level {
+        font-size: 0.6rem;
+        min-width: 24px;
+    }
+}
+
+/* Для очень маленьких экранов в горизонтальной ориентации */
+@media (max-width: 576px) and (orientation: landscape) {
+    .pdf-controls {
+        height: 34px;
+        min-height: 34px;
+    }
+
+    .pdf-control-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 0.65rem;
+    }
+
+    .page-info {
+        height: 20px;
+    }
+
+    .page-input {
+        width: 22px;
+    }
+
+    .pdf-viewport {
+        height: calc(100% - 34px);
+    }
+}
+
+/* Полноэкранный режим */
+.modal-content:fullscreen .pdf-presentation-viewer {
+    background: #000;
+}
+
+.modal-content:fullscreen .pdf-controls {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-content:fullscreen .pdf-viewport {
+    padding: 0;
+}
+
+.modal-content:fullscreen .react-pdf__Page__canvas {
+    max-height: calc(100vh - 42px) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+    .pdf-presentation-viewer {
+        background: #121212;
+    }
+
+    .pdf-controls {
+        background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    }
+
+    .pdf-control-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .pdf-control-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .page-info {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .page-input:focus {
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .react-pdf__Page__canvas {
+        background: #1e1e1e;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .pdf-loading {
+        background: rgba(40, 40, 40, 0.9);
+        color: #ddd;
+    }
+
+    .pdf-loading p {
+        color: #ddd;
+    }
+
+    .pdf-error {
+        background: #2d2d2d;
+        color: white;
+    }
+
+    .pdf-error h3 {
+        color: white;
+    }
+
+    .pdf-error p {
+        color: #ccc;
+    }
+}
+
+/* Улучшения доступности */
+.pdf-control-btn:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+.page-input:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 0;
+}
+
+/* Плавные анимации */
+.pdf-control-btn,
+.page-input,
+.page-info,
+.zoom-level {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Убираем выделение у кнопок */
+.pdf-control-btn {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Инструменты для навигации PDF */
+.react-pdf__Page__textContent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    line-height: 1.0;
+    pointer-events: none;
+}
+
+.react-pdf__Page__textContent span {
+    color: transparent;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+}
+
+/* Скроллбар для области просмотра */
+.pdf-viewport::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.pdf-viewport::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+.pdf-viewport::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.pdf-viewport::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Для темной темы */
+@media (prefers-color-scheme: dark) {
+    .pdf-viewport::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .pdf-viewport::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .pdf-viewport::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+}
+
 
 /* Информация о странице */
 .page-info {
