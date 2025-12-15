@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import './App.css';
-import { categories } from './data/categories';
+import {categories} from './data/categories';
 import Login from './components/Login';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -125,9 +125,24 @@ function App() {
 
     // Обработчики файлов
     const handleViewFile = (file) => {
-        console.log('Opening file:', file);
-        setSelectedFile(file);
-        setIsModalOpen(true);
+
+        // Для PDF на мобильных можно показать подтверждение
+        if (file.type === 'document' && window.innerWidth <= 768) {
+            const confirmView = window.confirm(
+                'Открыть PDF для просмотра? (Нажмите ОК для просмотра или Отмена для скачивания)'
+            );
+
+            if (confirmView) {
+                setSelectedFile(file);
+                setIsModalOpen(true);
+            } else {
+                // Если пользователь хочет скачать
+                handleDownloadFile(file);
+            }
+        } else {
+            setSelectedFile(file);
+            setIsModalOpen(true);
+        }
     };
 
     const handleDownloadFile = (file) => {
@@ -159,7 +174,7 @@ function App() {
         <div className="App">
             <div className="container">
                 {!isLoggedIn ? (
-                    <Login onLogin={handleLogin} />
+                    <Login onLogin={handleLogin}/>
                 ) : (
                     <div className="content-container">
                         <Header

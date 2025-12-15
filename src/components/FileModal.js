@@ -1,14 +1,17 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 
 const FileModal = ({ file, isOpen, onClose }) => {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const iframeRef = useRef(null);
+    const [useGoogleViewer, setUseGoogleViewer] = useState(false);
 
     // Определяем мобильное устройство
     useEffect(() => {
         const checkMobile = () => {
-            setIsMobile(window.innerWidth <= 768);
+            const mobile = window.innerWidth <= 768;
+            setIsMobile(mobile);
+            // Для мобильных используем Google Docs Viewer по умолчанию
+            setUseGoogleViewer(mobile && file?.type === 'document');
         };
 
         checkMobile();
@@ -17,7 +20,7 @@ const FileModal = ({ file, isOpen, onClose }) => {
         return () => {
             window.removeEventListener('resize', checkMobile);
         };
-    }, []);
+    }, [file]);
 
     // Обработчик клавиши Escape
     const handleEscapeKey = useCallback((e) => {
@@ -26,27 +29,7 @@ const FileModal = ({ file, isOpen, onClose }) => {
         }
     }, [isOpen]);
 
-    // Обработчики для PDF на мобильных
-    const handleIframeLoad = useCallback(() => {
-        if (iframeRef.current && file?.type === 'document') {
-            try {
-                // Пытаемся установить правильный режим просмотра для PDF
-                const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
-                if (iframeDoc) {
-                    // Добавляем мета-тег для мобильной адаптации
-                    const meta = iframeDoc.createElement('meta');
-                    meta.name = 'viewport';
-                    meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0';
-                    iframeDoc.head.appendChild(meta);
-                }
-            } catch (error) {
-                console.log('Cannot modify iframe document:', error);
-            }
-        }
-    }, [file]);
-
     useEffect(() => {
-        // Блокируем прокрутку при открытии модалки
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             document.addEventListener('keydown', handleEscapeKey);
@@ -112,28 +95,27 @@ const FileModal = ({ file, isOpen, onClose }) => {
         }
     };
 
-    // Генерируем правильный URL для PDF
+    // Функция для переключения режима просмотра PDF
+    const togglePdfView = () => {
+        setUseGoogleViewer(!useGoogleViewer);
+    };
+
+    // Получаем URL для PDF
     const getPdfUrl = () => {
         if (!file || file.type !== 'document') return '';
 
         let pdfUrl = file.url;
 
-        // Добавляем параметры для корректного отображения PDF
-        // На мобильных устройствах используем Google Docs Viewer для просмотра
-        if (isMobile) {
-            // Проверяем, является ли это PDF файлом
-            if (pdfUrl.toLowerCase().endsWith('.pdf')) {
-                // Используем Google Docs Viewer для мобильных устройств
-                return `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
+        if (useGoogleViewer) {
+            // Google Docs Viewer для просмотра
+            return `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
+        } else {
+            // Нативный просмотр с параметрами
+            if (!pdfUrl.includes('#')) {
+                pdfUrl += '#toolbar=0&navpanes=0&scrollbar=0';
             }
+            return pdfUrl;
         }
-
-        // Для десктопов используем стандартный просмотр
-        if (!pdfUrl.includes('#')) {
-            pdfUrl += '#view=FitH&toolbar=0&navpanes=0';
-        }
-
-        return pdfUrl;
     };
 
     if (!isOpen || !file) return null;
@@ -150,6 +132,18 @@ const FileModal = ({ file, isOpen, onClose }) => {
                     </div>
 
                     <div className="modal-controls">
+                        {/* Кнопка переключения режима PDF на мобильных */}
+                        {isMobile && file.type === 'document' && (
+                            <button
+                                className="modal-btn"
+                                onClick={togglePdfView}
+                                title={useGoogleViewer ? "Переключить на нативный просмотр" : "Переключить на Google просмотр"}
+                                aria-label="Переключить режим просмотра PDF"
+                            >
+                                <i className={`fas ${useGoogleViewer ? 'fa-file-pdf' : 'fa-eye'}`}></i>
+                            </button>
+                        )}
+
                         {!isFullscreen ? (
                             <button
                                 className="modal-btn"
@@ -193,40 +187,39 @@ const FileModal = ({ file, isOpen, onClose }) => {
                         />
                     ) : (
                         <div className="pdf-viewer-container">
-                            {/* Информация о PDF для мобильных */}
                             {isMobile && (
                                 <div className="mobile-pdf-info">
-                                    <p><i className="fas fa-info-circle"></i> PDF открыт в режиме просмотра</p>
-                                    <p className="mobile-pdf-hint">Для скачивания нажмите кнопку "Скачать" в карточке файла</p>
+                                    <p>
+                                        <i className="fas fa-info-circle"></i>
+                                        {useGoogleViewer ? 'Google Docs Viewer' : 'Нативный просмотр'}
+                                        <button
+                                            onClick={togglePdfView}
+                                            className="pdf-view-toggle"
+                                            style={{
+                                                marginLeft: '10px',
+                                                background: 'transparent',
+                                                border: '1px solid var(--secondary)',
+                                                color: 'var(--secondary)',
+                                                padding: '2px 8px',
+                                                borderRadius: '3px',
+                                                fontSize: '0.8rem',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Переключить
+                                        </button>
+                                    </p>
                                 </div>
                             )}
 
                             <iframe
-                                ref={iframeRef}
                                 className="modal-document"
                                 src={getPdfUrl()}
                                 title={file.name}
                                 frameBorder="0"
-                                onLoad={handleIframeLoad}
-                                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                                sandbox="allow-same-origin allow-scripts"
                                 allow="fullscreen"
-                                loading="lazy"
                             />
-
-                            {/* Альтернативная ссылка для мобильных, если iframe не работает */}
-                            {isMobile && (
-                                <div className="mobile-pdf-fallback">
-                                    <p>Если PDF не отображается:</p>
-                                    <a
-                                        href={file.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mobile-pdf-link"
-                                    >
-                                        <i className="fas fa-external-link-alt"></i> Открыть в новой вкладке
-                                    </a>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
