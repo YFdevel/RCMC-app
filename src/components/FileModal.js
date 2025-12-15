@@ -2,25 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 
 const FileModal = ({ file, isOpen, onClose }) => {
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-    const [useGoogleViewer, setUseGoogleViewer] = useState(false);
-
-    // Определяем мобильное устройство
-    useEffect(() => {
-        const checkMobile = () => {
-            const mobile = window.innerWidth <= 768;
-            setIsMobile(mobile);
-            // Для мобильных используем Google Docs Viewer по умолчанию
-            setUseGoogleViewer(mobile && file?.type === 'document');
-        };
-
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-
-        return () => {
-            window.removeEventListener('resize', checkMobile);
-        };
-    }, [file]);
+    const [showPdfWarning, setShowPdfWarning] = useState(false);
 
     // Обработчик клавиши Escape
     const handleEscapeKey = useCallback((e) => {
@@ -30,16 +12,24 @@ const FileModal = ({ file, isOpen, onClose }) => {
     }, [isOpen]);
 
     useEffect(() => {
+        // Блокируем прокрутку при открытии модалки
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             document.addEventListener('keydown', handleEscapeKey);
+
+            // Для PDF файлов показываем предупреждение
+            if (file?.type === 'document') {
+                const isMobile = window.innerWidth <= 768;
+                setShowPdfWarning(isMobile);
+            }
         }
 
         return () => {
             document.body.style.overflow = 'auto';
             document.removeEventListener('keydown', handleEscapeKey);
+            setShowPdfWarning(false);
         };
-    }, [isOpen, handleEscapeKey]);
+    }, [isOpen, file, handleEscapeKey]);
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -95,27 +85,37 @@ const FileModal = ({ file, isOpen, onClose }) => {
         }
     };
 
-    // Функция для переключения режима просмотра PDF
-    const togglePdfView = () => {
-        setUseGoogleViewer(!useGoogleViewer);
+    // Открыть PDF в новой вкладке
+    const openPdfInNewTab = () => {
+        window.open(file.url, '_blank', 'noopener,noreferrer');
     };
 
-    // Получаем URL для PDF
+    // Получить URL для PDF с параметрами
     const getPdfUrl = () => {
         if (!file || file.type !== 'document') return '';
 
         let pdfUrl = file.url;
 
-        if (useGoogleViewer) {
-            // Google Docs Viewer для просмотра
-            return `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
-        } else {
-            // Нативный просмотр с параметрами
-            if (!pdfUrl.includes('#')) {
-                pdfUrl += '#toolbar=0&navpanes=0&scrollbar=0';
-            }
-            return pdfUrl;
+        // Добавляем параметры для лучшего отображения
+        if (!pdfUrl.includes('#')) {
+            pdfUrl += '#toolbar=0&navpanes=0&scrollbar=0';
         }
+
+        return pdfUrl;
+    };
+
+    // Проверяем, поддерживает ли браузер встроенный просмотр PDF
+    const supportsInlinePdf = () => {
+        const ua = navigator.userAgent.toLowerCase();
+        const isIOS = /iphone|ipad|ipod/.test(ua);
+        const isAndroid = /android/.test(ua);
+
+        // iOS Safari и некоторые Android браузеры не поддерживают PDF в iframe
+        if (isIOS || isAndroid) {
+            return false;
+        }
+
+        return true;
     };
 
     if (!isOpen || !file) return null;
@@ -132,18 +132,6 @@ const FileModal = ({ file, isOpen, onClose }) => {
                     </div>
 
                     <div className="modal-controls">
-                        {/* Кнопка переключения режима PDF на мобильных */}
-                        {isMobile && file.type === 'document' && (
-                            <button
-                                className="modal-btn"
-                                onClick={togglePdfView}
-                                title={useGoogleViewer ? "Переключить на нативный просмотр" : "Переключить на Google просмотр"}
-                                aria-label="Переключить режим просмотра PDF"
-                            >
-                                <i className={`fas ${useGoogleViewer ? 'fa-file-pdf' : 'fa-eye'}`}></i>
-                            </button>
-                        )}
-
                         {!isFullscreen ? (
                             <button
                                 className="modal-btn"
@@ -186,40 +174,77 @@ const FileModal = ({ file, isOpen, onClose }) => {
                             }}
                         />
                     ) : (
-                        <div className="pdf-viewer-container">
-                            {isMobile && (
-                                <div className="mobile-pdf-info">
-                                    <p>
-                                        <i className="fas fa-info-circle"></i>
-                                        {useGoogleViewer ? 'Google Docs Viewer' : 'Нативный просмотр'}
-                                        <button
-                                            onClick={togglePdfView}
-                                            className="pdf-view-toggle"
-                                            style={{
-                                                marginLeft: '10px',
-                                                background: 'transparent',
-                                                border: '1px solid var(--secondary)',
-                                                color: 'var(--secondary)',
-                                                padding: '2px 8px',
-                                                borderRadius: '3px',
-                                                fontSize: '0.8rem',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Переключить
-                                        </button>
-                                    </p>
-                                </div>
-                            )}
+                        <div className="pdf-container">
+                            {showPdfWarning && !supportsInlinePdf() ? (
+                                <div className="pdf-mobile-warning">
+                                    <div className="pdf-warning-icon">
+                                        <i className="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <h3>Просмотр PDF на мобильном устройстве</h3>
+                                    <p>Ваш браузер не поддерживает встроенный просмотр PDF файлов.</p>
+                                    <p>Вы можете:</p>
 
-                            <iframe
-                                className="modal-document"
-                                src={getPdfUrl()}
-                                title={file.name}
-                                frameBorder="0"
-                                sandbox="allow-same-origin allow-scripts"
-                                allow="fullscreen"
-                            />
+                                    <div className="pdf-mobile-options">
+                                        <button
+                                            className="pdf-open-tab-btn"
+                                            onClick={openPdfInNewTab}
+                                        >
+                                            <i className="fas fa-external-link-alt"></i>
+                                            Открыть в новой вкладке
+                                        </button>
+
+                                        <button
+                                            className="pdf-try-anyway-btn"
+                                            onClick={() => setShowPdfWarning(false)}
+                                        >
+                                            <i className="fas fa-sync-alt"></i>
+                                            Попробовать встроенный просмотр
+                                        </button>
+
+                                        <a
+                                            href={file.url}
+                                            download={file.name}
+                                            className="pdf-download-btn"
+                                        >
+                                            <i className="fas fa-download"></i>
+                                            Скачать PDF
+                                        </a>
+                                    </div>
+
+                                    <div className="pdf-mobile-tips">
+                                        <p><strong>Совет:</strong> Для просмотра PDF на мобильном устройстве:</p>
+                                        <ul>
+                                            <li>Используйте приложение для просмотра PDF (Adobe Acrobat Reader, Google PDF Viewer)</li>
+                                            <li>Откройте файл в новой вкладке браузера</li>
+                                            <li>Скачайте файл для офлайн-просмотра</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Пытаемся показать PDF через iframe */}
+                                    <iframe
+                                        className="pdf-iframe"
+                                        src={getPdfUrl()}
+                                        title={file.name}
+                                        frameBorder="0"
+                                        sandbox="allow-same-origin allow-scripts"
+                                        allow="fullscreen"
+                                        style={{ width: '100%', height: '100%' }}
+                                    />
+
+                                    {/* Сообщение если PDF не загрузился */}
+                                    <div className="pdf-fallback" style={{ display: 'none' }}>
+                                        <p>Не удалось загрузить PDF для просмотра.</p>
+                                        <button
+                                            onClick={openPdfInNewTab}
+                                            className="pdf-fallback-btn"
+                                        >
+                                            Открыть в новой вкладке
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

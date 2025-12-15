@@ -124,26 +124,29 @@ function App() {
     };
 
     // Обработчики файлов
-    const handleViewFile = (file) => {
+ const handleViewFile = (file) => {
+    console.log('Opening file:', file);
 
-        // Для PDF на мобильных можно показать подтверждение
-        if (file.type === 'document' && window.innerWidth <= 768) {
-            const confirmView = window.confirm(
-                'Открыть PDF для просмотра? (Нажмите ОК для просмотра или Отмена для скачивания)'
-            );
+    // Для PDF на мобильных устройствах
+    if (file.type === 'document' && window.innerWidth <= 768) {
+        // Показываем диалог с выбором
+        const userChoice = window.confirm(
+            'PDF файлы на мобильных устройствах лучше открывать в новой вкладке.\n\n' +
+            'Нажмите "OK" чтобы открыть в новой вкладке\n' +
+            'Нажмите "Отмена" чтобы попробовать встроенный просмотр'
+        );
 
-            if (confirmView) {
-                setSelectedFile(file);
-                setIsModalOpen(true);
-            } else {
-                // Если пользователь хочет скачать
-                handleDownloadFile(file);
-            }
-        } else {
-            setSelectedFile(file);
-            setIsModalOpen(true);
+        if (userChoice) {
+            // Открываем в новой вкладке
+            window.open(file.url, '_blank', 'noopener,noreferrer');
+            return;
         }
-    };
+    }
+
+    // Для изображений или если пользователь хочет попробовать встроенный просмотр
+    setSelectedFile(file);
+    setIsModalOpen(true);
+};
 
     const handleDownloadFile = (file) => {
         console.log('Downloading file:', file);

@@ -1351,3 +1351,235 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+
+/* ===== СТИЛИ ДЛЯ PDF НА МОБИЛЬНЫХ ===== */
+
+.pdf-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.pdf-mobile-warning {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.pdf-warning-icon {
+    font-size: 3rem;
+    color: var(--warning);
+    margin-bottom: 20px;
+}
+
+.pdf-mobile-warning h3 {
+    color: var(--dark);
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.pdf-mobile-warning p {
+    color: var(--gray);
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.pdf-mobile-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.pdf-open-tab-btn,
+.pdf-try-anyway-btn,
+.pdf-download-btn {
+    padding: 15px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.pdf-open-tab-btn {
+    background: linear-gradient(135deg, var(--secondary), #2980b9);
+    color: white;
+}
+
+.pdf-open-tab-btn:hover {
+    background: linear-gradient(135deg, #2980b9, var(--secondary));
+    transform: translateY(-2px);
+}
+
+.pdf-try-anyway-btn {
+    background: linear-gradient(135deg, var(--warning), #e67e22);
+    color: white;
+}
+
+.pdf-try-anyway-btn:hover {
+    background: linear-gradient(135deg, #e67e22, var(--warning));
+    transform: translateY(-2px);
+}
+
+.pdf-download-btn {
+    background: linear-gradient(135deg, var(--success), #27ae60);
+    color: white;
+}
+
+.pdf-download-btn:hover {
+    background: linear-gradient(135deg, #27ae60, var(--success));
+    transform: translateY(-2px);
+}
+
+.pdf-mobile-tips {
+    background: var(--light);
+    border-radius: var(--radius);
+    padding: 15px;
+    margin-top: 20px;
+    text-align: left;
+}
+
+.pdf-mobile-tips p {
+    color: var(--dark);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.pdf-mobile-tips ul {
+    padding-left: 20px;
+    color: var(--gray);
+    line-height: 1.6;
+}
+
+.pdf-mobile-tips li {
+    margin-bottom: 8px;
+}
+
+/* Iframe для PDF */
+.pdf-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+    border-radius: var(--radius);
+}
+
+/* Фолбэк если PDF не загрузился */
+.pdf-fallback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    z-index: 2;
+}
+
+.pdf-fallback p {
+    color: var(--dark);
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+.pdf-fallback-btn {
+    padding: 12px 25px;
+    background: var(--secondary);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pdf-fallback-btn:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+/* Для десктопов - показываем PDF сразу */
+@media (min-width: 769px) {
+    .pdf-container {
+        padding: 0;
+    }
+
+    .pdf-iframe {
+        border-radius: 0;
+    }
+}
+
+/* Для мобильных устройств */
+@media (max-width: 768px) {
+    .pdf-mobile-warning {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .pdf-mobile-options {
+        gap: 12px;
+    }
+
+    .pdf-open-tab-btn,
+    .pdf-try-anyway-btn,
+    .pdf-download-btn {
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+
+    .pdf-mobile-tips {
+        font-size: 0.9rem;
+        padding: 12px;
+    }
+}
+
+/* Очень маленькие экраны */
+@media (max-width: 576px) {
+    .pdf-mobile-warning {
+        padding: 15px;
+        margin: 10px;
+    }
+
+    .pdf-warning-icon {
+        font-size: 2.5rem;
+    }
+
+    .pdf-mobile-warning h3 {
+        font-size: 1.3rem;
+    }
+
+    .pdf-mobile-options {
+        gap: 10px;
+    }
+
+    .pdf-open-tab-btn,
+    .pdf-try-anyway-btn,
+    .pdf-download-btn {
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+
+    .pdf-mobile-tips {
+        font-size: 0.85rem;
+        padding: 10px;
+    }
+}
