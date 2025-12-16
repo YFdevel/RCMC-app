@@ -1,0 +1,197 @@
+/* Контейнер Header */
+.header {
+  width: 100%;
+  padding: 15px 30px;
+  background: linear-gradient(135deg, var(--primary, #2c3e50), var(--primary-light, #34495e));
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 70px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 100;
+}
+
+/* Заголовок */
+.title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 0;
+  color: white;
+}
+
+/* Кнопка гамбургер-меню */
+.hamburgerBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  width: 50px;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamburgerBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.hamburgerBtn.active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Контейнер для кнопок управления */
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Кнопка выхода */
+.logoutBtn {
+  padding: 12px 25px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Оверлей для мобильного меню */
+.sidebarOverlay {
+  display: none;
+  position: fixed;
+  top: 70px;
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 70px);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 75;
+}
+
+.sidebarOverlay.active {
+  display: block;
+  animation: fadeInOverlay 0.3s ease;
+}
+
+/* Анимации */
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Адаптивность - Мобильные устройства */
+@media (max-width: 768px) {
+  .header {
+    padding: 15px 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .title {
+    font-size: 1.6rem;
+    flex: 1;
+  }
+
+  .hamburgerBtn {
+    display: flex !important;
+  }
+
+  .headerControls {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .headerControls.mobileVisible {
+    display: flex;
+  }
+
+  .title {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .header {
+    padding: 15px 15px;
+  }
+
+  .title {
+    font-size: 1.4rem;
+  }
+
+  .logoutBtn {
+    padding: 10px 15px;
+    font-size: 0.9rem;
+  }
+
+  .hamburgerBtn {
+    width: 45px;
+    height: 45px;
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .title {
+    font-size: 1.2rem;
+  }
+
+  .title i {
+    font-size: 1.4rem;
+  }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+  .header {
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  }
+
+  .sidebarOverlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Гарантируем видимость иконок FontAwesome */
+.header i,
+.title i,
+.logoutBtn i,
+.hamburgerBtn i {
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

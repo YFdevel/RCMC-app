@@ -1,0 +1,30 @@
+:root {
+  /* Цветовая палитра */
+  --primary: #2c3e50;
+  --primary-light: #34495e;
+  --secondary: #3498db;
+  --accent: #e74c3c;
+  --success: #2ecc71;
+  --warning: #f39c12;
+
+  /* Оттенки */
+  --light: #ecf0f1;
+  --dark: #2c3e50;
+  --gray: #7f8c8d;
+  --light-gray: #bdc3c7;
+
+  /* Тени */
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  /* Скругления */
+  --radius: 10px;
+  --radius-lg: 15px;
+
+  /* Анимации */
+  --transition: 0.3s ease;
+  
+  /* Размеры */
+  --header-height: 70px;
+  --sidebar-width: 280px;
+}

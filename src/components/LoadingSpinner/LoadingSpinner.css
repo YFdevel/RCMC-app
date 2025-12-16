@@ -1,0 +1,59 @@
+.loadingSpinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 20px;
+}
+
+.spinner {
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+.spinner.small {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--secondary);
+}
+
+.spinner.medium {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid var(--secondary);
+}
+
+.spinner.large {
+  width: 70px;
+  height: 70px;
+  border: 7px solid #f3f3f3;
+  border-top: 7px solid var(--secondary);
+}
+
+.text {
+  font-size: 1rem;
+  color: var(--gray);
+  margin: 0;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+  .text {
+    color: #ccc;
+  }
+
+  .spinner {
+    border-color: #3d3d3d;
+    border-top-color: var(--secondary);
+  }
+}

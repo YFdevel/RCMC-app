@@ -1,0 +1,111 @@
+.sidebarContent {
+  height: 100%;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.categoryWrapper {
+  margin-bottom: 8px;
+}
+
+.categoryItem {
+  padding: 15px 20px;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 0 10px;
+}
+
+.categoryItem:hover {
+  background: #f8f9fa;
+  border-color: var(--secondary);
+  transform: translateX(4px);
+}
+
+.categoryItem.active {
+  background: linear-gradient(135deg, var(--secondary), #2980b9);
+  color: white;
+  border-color: var(--secondary);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.categoryIcon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.subcategories {
+  margin-left: 40px;
+  margin-top: 8px;
+  margin-right: 10px;
+}
+
+.subcategoryItem {
+  padding: 10px 15px;
+  margin-bottom: 4px;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+}
+
+.subcategoryItem:hover {
+  background: #f8f9fa;
+  border-color: var(--light-gray);
+  transform: translateX(3px);
+}
+
+.subcategoryItem.active {
+  background: rgba(52, 152, 219, 0.1);
+  border-color: var(--secondary);
+  color: var(--secondary);
+  font-weight: 500;
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+  .categoryItem,
+  .subcategoryItem {
+    background: #2d2d2d;
+    color: white;
+  }
+
+  .categoryItem:hover,
+  .subcategoryItem:hover {
+    background: #3d3d3d;
+  }
+
+  .categoryItem.active {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+  }
+}
+
+/* Скроллбар */
+.sidebarContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebarContent::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.sidebarContent::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.sidebarContent::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

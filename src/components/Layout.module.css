@@ -1,0 +1,410 @@
+/* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
+.container {
+    width: 100%;
+    height: 100vh;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* ===== КОНТЕЙНЕР КОНТЕНТА ===== */
+.contentContainer {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: white;
+}
+
+/* ===== ШАПКА ===== */
+.header {
+    width: 100%;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 70px;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 100;
+}
+
+.header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 0;
+}
+
+/* Кнопка гамбургер-меню */
+.hamburgerBtn {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+    width: 50px;
+    height: 50px;
+    align-items: center;
+    justify-content: center;
+}
+
+.hamburgerBtn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.hamburgerBtn.active {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.headerControls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.logoutBtn {
+    padding: 12px 25px;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.logoutBtn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+/* ===== ХЛЕБНЫЕ КРОШКИ ===== */
+.breadcrumb {
+    width: 100%;
+    padding: 15px 30px;
+    background: var(--light);
+    border-bottom: 1px solid var(--light-gray);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    min-height: 60px;
+    box-sizing: border-box;
+}
+
+.breadcrumbItem {
+    color: var(--secondary);
+    font-weight: 500;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.breadcrumbItem:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.breadcrumbItem:not(:last-child)::after {
+    content: '›';
+    margin-left: 15px;
+    color: var(--gray);
+}
+
+.breadcrumbItem:last-child {
+    color: var(--dark);
+    cursor: default;
+}
+
+/* ===== ОСНОВНОЙ КОНТЕНТ ===== */
+.mainContent {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ===== БОКОВАЯ ПАНЕЛЬ ===== */
+.categoriesSidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--light);
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid var(--light-gray);
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition: transform 0.3s ease;
+    z-index: 90;
+}
+
+/* ===== ОБЛАСТЬ С ФАЙЛАМИ ===== */
+.contentArea {
+    flex: 1;
+    min-width: 0;
+    padding: 25px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    align-content: start;
+    background: white;
+    transition: width 0.3s ease;
+}
+
+/* ===== СОСТОЯНИЕ ПУСТО ===== */
+.emptyState {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    width: 100%;
+}
+
+.emptyState i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: var(--light-gray);
+    opacity: 0.5;
+}
+
+.emptyState h3 {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    color: var(--dark);
+}
+
+.emptyState p {
+    font-size: 1.1rem;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* ===== ПРОКРУТКА ===== */
+.categoriesSidebar::-webkit-scrollbar,
+.contentArea::-webkit-scrollbar {
+    width: 8px;
+}
+
+.categoriesSidebar::-webkit-scrollbar-track,
+.contentArea::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.categoriesSidebar::-webkit-scrollbar-thumb,
+.contentArea::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.categoriesSidebar::-webkit-scrollbar-thumb:hover,
+.contentArea::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* АДАПТИВНОСТЬ */
+@media (max-width: 1024px) {
+    .contentArea {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hamburgerBtn {
+        display: flex;
+    }
+
+    .categoriesSidebar {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        width: 280px;
+        height: calc(100vh - 70px);
+        transform: translateX(-100%);
+        z-index: 80;
+        box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .categoriesSidebar.mobileOpen {
+        transform: translateX(0);
+        animation: slideIn 0.3s ease;
+    }
+
+    .sidebarOverlay {
+        display: none;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        height: calc(100vh - 70px);
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 75;
+    }
+
+    .sidebarOverlay.active {
+        display: block;
+        animation: fadeInOverlay 0.3s ease;
+    }
+
+    .contentArea {
+        width: 100%;
+        padding: 15px;
+    }
+
+    .header {
+        padding: 15px 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .header h1 {
+        font-size: 1.6rem;
+        flex: 1;
+    }
+
+    .headerControls {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 10px;
+        display: none;
+    }
+
+    .headerControls.mobileVisible {
+        display: flex;
+    }
+
+    .breadcrumb {
+        padding: 15px 20px;
+        min-height: auto;
+    }
+}
+
+@media (max-width: 576px) {
+    .contentArea {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+    }
+
+    .header h1 {
+        font-size: 1.4rem;
+    }
+
+    .logoutBtn {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 375px) and (orientation: portrait) {
+    .categoriesSidebar {
+        padding: 15px;
+        width: 100%;
+    }
+
+    .hamburgerBtn {
+        width: 45px;
+        height: 45px;
+        font-size: 1.5rem;
+    }
+}
+
+/* ТЕМНАЯ ТЕМА */
+@media (prefers-color-scheme: dark) {
+    .container {
+        background: #1a1a1a;
+        color: white;
+    }
+
+    .contentContainer {
+        background: #1a1a1a;
+    }
+
+    .contentArea {
+        background: #1a1a1a;
+    }
+
+    .categoriesSidebar {
+        background: #222;
+    }
+
+    .breadcrumb {
+        background: #222;
+        color: white;
+    }
+
+    .breadcrumbItem {
+        color: #7bb5e3;
+    }
+
+    .breadcrumbItem:last-child {
+        color: #ddd;
+    }
+
+    .sidebarOverlay {
+        background: rgba(0, 0, 0, 0.7);
+    }
+
+    .categoriesSidebar::-webkit-scrollbar-track,
+    .contentArea::-webkit-scrollbar-track {
+        background: #2d2d2d;
+    }
+
+    .categoriesSidebar::-webkit-scrollbar-thumb,
+    .contentArea::-webkit-scrollbar-thumb {
+        background: #555;
+    }
+
+    .categoriesSidebar::-webkit-scrollbar-thumb:hover,
+    .contentArea::-webkit-scrollbar-thumb:hover {
+        background: #666;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
