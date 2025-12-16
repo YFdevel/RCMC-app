@@ -570,39 +570,43 @@
     height: 100%;
     padding: 10px;
     background: #000;
+    /* Добавлено для центрирования */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Улучшаем центрирование PDF на мобильных */
+  .pdfContainer :global(.react-pdf__Document) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .pdfContainer :global(.react-pdf__Page) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .pdfContainer :global(.react-pdf__Page__canvas) {
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: auto !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
 }
 
-/* Глобальные стили для react-pdf */
-.pdfContainer :global(.react-pdf__Document) {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  width: 100% !important;
-  min-height: 100% !important;
-}
-
-.pdfContainer :global(.react-pdf__Page) {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  width: 100% !important;
-  min-height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.pdfContainer :global(.react-pdf__Page__canvas) {
-  margin: 0 auto !important;
-  display: block !important;
-  max-width: 95% !important;
-  max-height: 95% !important;
-  width: auto !important;
-  height: auto !important;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  background: white;
-}
 
 /* Для темной темы */
 @media (prefers-color-scheme: dark) {
@@ -619,3 +623,14 @@
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
   }
 }
+
+/* Дополнительные стили для лучшего отображения PDF */
+/*@media (max-width: 768px) {*/
+/*  .pdfContainer :global(.react-pdf__Page__canvas) {*/
+/*    width: 100% !important;*/
+/*    max-width: 100% !important;*/
+/*    height: auto !important;*/
+/*    max-height: 90vh !important;*/
+/*    object-fit: contain;*/
+/*  }*/
+/*}*/

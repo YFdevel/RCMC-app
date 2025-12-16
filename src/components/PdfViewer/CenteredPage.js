@@ -78,7 +78,12 @@ const CenteredPDF = ({ fileUrl, isMobile, scale }) => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'auto'
+        overflow: 'auto',
+        // Для мобильных устройств
+        ...(isMobile && {
+          justifyContent: 'flex-start',
+          paddingTop: '5%'
+        })
       }}
     >
       {isLoading && (
@@ -87,7 +92,12 @@ const CenteredPDF = ({ fileUrl, isMobile, scale }) => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100%'
+          height: '100%',
+          // Для мобильных устройств
+          ...(isMobile && {
+            justifyContent: 'flex-start',
+            paddingTop: '40%'
+          })
         }}>
           <div style={{
             width: '40px',
@@ -98,7 +108,7 @@ const CenteredPDF = ({ fileUrl, isMobile, scale }) => {
             animation: 'spin 1s linear infinite',
             marginBottom: '16px'
           }} />
-          <p>Загрузка PDF...</p>
+          <p style={{ color: isMobile ? 'white' : 'inherit' }}>Загрузка PDF...</p>
         </div>
       )}
 
@@ -113,7 +123,12 @@ const CenteredPDF = ({ fileUrl, isMobile, scale }) => {
           height: '100%',
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center'
+          alignItems: isMobile ? 'flex-start' : 'center', // Изменено для мобильных
+          // Для мобильных - занимаем всю доступную высоту
+          ...(isMobile && {
+            alignItems: 'center',
+            minHeight: '100%'
+          })
         }}
       >
         <Page
@@ -126,7 +141,12 @@ const CenteredPDF = ({ fileUrl, isMobile, scale }) => {
           style={{
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            // Для мобильных - растягиваем на всю ширину
+            ...(isMobile && {
+              width: '100%',
+              maxWidth: '100%'
+            })
           }}
         />
       </Document>
@@ -142,7 +162,11 @@ const CenteredPDF = ({ fileUrl, isMobile, scale }) => {
           alignItems: 'center',
           gap: '10px',
           padding: '10px',
-          zIndex: 100
+          zIndex: 100,
+          // Для мобильных - учитываем безопасные зоны
+          ...(isMobile && {
+            bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))'
+          })
         }}>
           <div style={{
             display: 'flex',
